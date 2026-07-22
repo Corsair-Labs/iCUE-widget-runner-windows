@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tr('Robex Tourbillon')</title>
+  <link rel="icon" type="image/svg+xml" href="resources/icon.svg">
+
+  <!-- MediaViewer for background image support -->
+  <!-- MediaViewer CSS (inlined for packaging) -->
+  <style>
+    .position-container {
+      position: absolute;
+      transform-origin: top left;
+    }
+    .scale-container {
+      transform-origin: top left;
+    }
+    .rotation-container {
+      transform-origin: center center;
+    }
+    .rotation-container img,
+    .rotation-container video {
+      display: block;
+      object-fit: contain;
+    }
+  </style>
+  <!-- MediaViewer JS (inlined for packaging) -->
+  <script>
+    class MediaViewer {
+      constructor(options = {}) {
+        this.container = options.container;
+        this.onMediaLoaded = options.onMediaLoaded || (() => {});
+        this.onMediaError = options.onMediaError || (() => {});
+        this.debug = options.debug || false;
+        this.positionContainer = null;
+        this.scaleContainer = null;
+        this.rotationContainer = null;
+        this.mediaElement = null;
+        this.currentMediaPath = null;
+        this.supportedImageFormats = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg", "ico"];
+        this.supportedVideoFormats = ["mp4", "webm", "ogg", "mov", "avi", "mkv"];
+        if (!this.container) { throw new Error("MediaViewer: container is required"); }
+      }
+      getFileExtension(filePath) { return filePath.split(".").pop().toLowerCase(); }
+      isImageFile(ext) { return this.supportedImageFormats.includes(ext); }
+      isVideoFile(ext) { return this.supportedVideoFormats.includes(ext); }
+      log(...args) { if (this.debug) console.log("[MediaViewer]", ...args); }
+      warn(...args) { if (this.debug) console.warn("[MediaViewer]", ...args); }
+      error(...args) { console.error("[MediaViewer]", ...args); }
+      createImageElement(filePath) {
+        const img = document.createElement("img");
+        img.src = filePath;
+        img.onerror = () => { this.error("Failed to load image:", filePath); this.onMediaError(new Error("Failed to load image: " + filePath)); };
+        img.onload = () => { this.log("Image loaded successfully:", filePath); this.log("Image dimensions:", img.naturalWidth, "x", img.naturalHeight); this.onMediaLoaded(img); };
+        return img;
+      }
+      createVideoElement(filePath) {
+        const video = document.createElement("video");
+        video.controls = false; video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true;
+        video.addEventListener("loadedmetadata", () => { this.log("Video metadata loaded:", filePath); this.log("Video dimensions:", video.videoWidth, "x", video.videoHeight); });
+        video.addEventListener("loadeddata", () => { this.log("Video data loaded, attempting to play"); video.play().then(() => { this.log("Video playing successfully"); this.onMediaLoaded(video); }).catch((error) => { this.error("Error playing video:", error); this.onMediaError(error); }); });
+        video.addEventListener("error", (e) => { this.error("Video error:", e); if (video.error) { this.error("Error code:", video.error.code); this.error("Error message:", video.error.message); } this.onMediaError(new Error("Video error: " + (video.error?.message || "Unknown error"))); });
+        video.src = filePath;
+        return video;
+      }
+      createMediaElement(filePath) {
+        const ext = this.getFileExtension(filePath);
+        if (this.isImageFile(ext)) return this.createImageElement(filePath);
+        else if (this.isVideoFile(ext)) return this.createVideoElement(filePath);
+        else { this.error("Unsupported media format:", ext); this.onMediaError(new Error("Unsupported media format: " + ext)); return null; }
+      }
+      createContainers() {
+        this.positionContainer = document.createElement("div"); this.positionContainer.className = "position-container";
+        this.scaleContainer = document.createElement("div"); this.scaleContainer.className = "scale-container";
+        this.rotationContainer = document.createElement("div"); this.rotationContainer.className = "rotation-container";
+        this.rotationContainer.appendChild(this.mediaElement);
+        this.scaleContainer.appendChild(this.rotationContainer);
+        this.positionContainer.appendChild(this.scaleContainer);
+        return this.positionContainer;
+      }
+      applyTransform(params = {}) {
+        if (!this.positionContainer || !this.scaleContainer || !this.rotationContainer) { this.warn("Containers not initialized, cannot apply transform"); return; }
+        const baseWidth = params.baseWidth || 100; const baseHeight = params.baseHeight || 100;
+        const scaleValue = params.scale !== undefined ? params.scale : 1;
+        const posX = params.positionX || 0; const posY = params.positionY || 0; const rotation = params.angle || 0;
+        const containerWidth = this.container.clientWidth; const containerHeight = this.container.clientHeight;
+        const scaleX = containerWidth / baseWidth; const scaleY = containerHeight / baseHeight;
+        const minScale = Math.min(scaleX, scaleY);
+        const fixedPosX = posX * minScale; const fixedPosY = posY * minScale; const fixedScale = scaleValue * minScale;
+        this.positionContainer.style.transform = "translate(" + fixedPosX + "px, " + fixedPosY + "px)";
+        this.scaleContainer.style.transform = "scale(" + fixedScale + ")";
+        this.rotationContainer.style.transform = "rotate(" + rotation + "deg)";
+      }
+      loadMedia(params = {}) {
+        const filePath = params.path;
+        if (!filePath) { this.clear(); return; }
+        const filePathDecoded = decodeURIComponent(filePath);
+        if (this.currentMediaPath === filePathDecoded) { this.log("Same media, only updating transform"); this.applyTransform(params); return; }
+        this.log("Loading new media:", filePathDecoded); this.clear();
+        this.mediaElement = this.createMediaElement(filePathDecoded);
+        if (!this.mediaElement) { this.error("Failed to create media element"); return; }
+        const containerElement = this.createContainers();
+        this.container.appendChild(containerElement);
+        this.container.style.visibility = "visible";
+        this.applyTransform(params);
+        this.currentMediaPath = filePathDecoded;
+      }
+      clear() {
+        this.container.innerHTML = ""; this.container.style.visibility = "hidden";
+        this.positionContainer = null; this.scaleContainer = null; this.rotationContainer = null;
+        this.mediaElement = null; this.currentMediaPath = null;
+      }
+      destroy() { this.clear(); this.container = null; this.onMediaLoaded = null; this.onMediaError = null; }
+    }
+  </script>
+
+  <!-- Widget group: appears alongside other clocks in iCUE picker -->
+  <meta name="x-icue-widget-group" content="tr('Clock Face')">
+  <meta name="x-icue-widget-preview" content="resources/robextourbillonpreview.png">
+
+  <!-- Clock Settings -->
+  <meta name="x-icue-property" content="showSeconds"    data-label="tr('Show Second Hand')" data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="showTourbillon"  data-label="tr('Show Tourbillon')"  data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="showDate"        data-label="tr('Show Date')"        data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="showMonthDial"   data-label="tr('Show Month Dial')"  data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="secondHandColor" data-label="tr('Second Hand Color')" data-type="color" data-default="'#cc0000'">
+
+  <!-- Widget Personalization -->
+  <meta name="x-icue-property" content="backgroundMedia" data-label="tr('Background Image')" data-type="media-selector" data-filters="['*.png','*.jpg','*.jpeg','*.webp']">
+  <meta name="x-icue-property" content="glassBlur"       data-label="tr('Glass Blur')"       data-type="slider" data-default="0" data-min="0" data-max="30" data-step="1">
+  <meta name="x-icue-property" content="textColor"       data-label="tr('Text Color')"       data-type="color" data-default="'#ffffff'">
+  <meta name="x-icue-property" content="accentColor"     data-label="tr('Accent Color')"     data-type="color" data-default="'#d4af37'">
+  <meta name="x-icue-property" content="backgroundColor" data-label="tr('Background')"       data-type="color" data-default="'#0a0a0a'">
+  <meta name="x-icue-property" content="transparency"    data-label="tr('Background Transparency')" data-type="slider" data-default="100" data-min="0" data-max="100" data-step="1">
+
+  <!-- Property grouping -->
+  <script id="x-icue-groups" type="application/json">
+  [
+    { "title": "tr('Clock Settings')", "properties": ["showSeconds", "showTourbillon", "showDate", "showMonthDial", "secondHandColor"] },
+    { "title": "tr('Widget Personalization')", "properties": ["backgroundMedia", "glassBlur", "textColor", "accentColor", "backgroundColor", "transparency"] }
+  ]
+  </script>
+
+  <link rel="stylesheet" type="text/css" href="styles/RobexTourbillon.css">
+</head>
+<body>
+  <div class="widget-root">
+    <!-- Background layers -->
+    <div class="widget-background" aria-hidden="true">
+      <div class="main-glass"></div>
+      <div id="media-background"></div>
+    </div>
+
+    <div class="main-content">
+      <div class="watch-shadow" aria-hidden="true"></div>
+      <div class="watch-container">
+        <svg viewBox="0 0 400 400">
+          <defs>
+            <radialGradient id="dialGrad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+              <stop offset="0%"   style="stop-color:#1a2a3a;stop-opacity:1" />
+              <stop offset="90%"  style="stop-color:#05080c;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#000000;stop-opacity:1" />
+            </radialGradient>
+
+            <linearGradient id="silverGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%"   style="stop-color:#8a929a" />
+              <stop offset="25%"  style="stop-color:#e8ebf2" />
+              <stop offset="50%"  style="stop-color:#aab2bd" />
+              <stop offset="75%"  style="stop-color:#dce3eb" />
+              <stop offset="100%" style="stop-color:#717b85" />
+            </linearGradient>
+
+            <linearGradient id="steelBrushedGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"   style="stop-color:#e0e0e0" />
+              <stop offset="50%"  style="stop-color:#999999" />
+              <stop offset="100%" style="stop-color:#e0e0e0" />
+            </linearGradient>
+
+            <linearGradient id="rollerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%"   style="stop-color:#000" />
+              <stop offset="20%"  style="stop-color:#333" />
+              <stop offset="50%"  style="stop-color:#000" />
+              <stop offset="80%"  style="stop-color:#333" />
+              <stop offset="100%" style="stop-color:#000" />
+            </linearGradient>
+
+            <filter id="innerShadow">
+              <feOffset dx="0" dy="1" />
+              <feGaussianBlur stdDeviation="1" result="offset-blur" />
+              <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse" />
+              <feFlood flood-color="black" flood-opacity="0.75" result="color" />
+              <feComposite operator="in" in="color" in2="inverse" result="shadow" />
+              <feComposite operator="over" in="shadow" in2="SourceGraphic" />
+            </filter>
+          </defs>
+
+          <!-- Watch case -->
+          <circle cx="200" cy="200" r="195" class="watch-case-outer" />
+          <circle cx="200" cy="200" r="185" class="watch-case-ring" />
+          <circle cx="200" cy="200" r="180" class="watch-dial" />
+
+          <!-- Tick marks (generated by JS) -->
+          <g id="minute-ticks" transform="translate(200, 200)"></g>
+
+          <!-- Crown and branding -->
+          <g transform="translate(200, 110)">
+            <path d="M0 -22 L-6 -12 L-14 -18 L-10 0 L10 0 L14 -18 L6 -12 L0 -22 Z" class="crown-shape" />
+            <circle cx="-14" cy="-20" r="1.5" class="crown-shape" />
+            <circle cx="-6"  cy="-14" r="1.5" class="crown-shape" />
+            <circle cx="0"   cy="-24" r="1.5" class="crown-shape" />
+            <circle cx="6"   cy="-14" r="1.5" class="crown-shape" />
+            <circle cx="14"  cy="-20" r="1.5" class="crown-shape" />
+            <ellipse cx="0" cy="2" rx="10" ry="3" class="crown-shape" />
+
+            <text y="28" class="brand-text">ROBEX</text>
+            <text y="40" class="sub-text">PERPETUAL DATE</text>
+          </g>
+
+          <!-- Month subdial (9 o'clock position) -->
+          <g id="month-subdial" transform="translate(85, 200)">
+            <circle cx="0" cy="0" r="35" class="month-ring" />
+            <path d="M0 -35 L0 -30 M0 35 L0 30 M35 0 L30 0 M-35 0 L-30 0" class="month-ticks" />
+            <text y="18" class="month-label">MONTH</text>
+            <g id="month-hand-group" class="month-hand">
+              <line x1="0" y1="0" x2="0" y2="-28" />
+              <circle cx="0" cy="0" r="3" />
+            </g>
+          </g>
+
+          <!-- Date roller (3 o'clock position) -->
+          <g id="date-roller" transform="translate(315, 200)">
+            <rect x="-25" y="-15" width="50" height="30" rx="2" class="date-roller-bg" />
+            <text id="date-text" x="0" y="8" class="date-roller-text">--</text>
+            <rect x="-23" y="-13" width="46" height="1" class="date-roller-highlight" />
+          </g>
+
+          <!-- Tourbillon (6 o'clock position) -->
+          <g id="tourbillon-group">
+            <circle cx="200" cy="300" r="45" class="tourbillon-well" filter="url(#innerShadow)" />
+
+            <g transform="translate(200, 300)">
+              <g id="tourbillon-cage" class="tourbillon-cage">
+                <path d="M-45 0 L45 0 M0 -45 L0 45" class="tourbillon-crosshair" />
+                <circle cx="0" cy="0" r="38" class="tourbillon-ring-outer" />
+                <circle cx="0" cy="0" r="10" class="tourbillon-hub" />
+
+                <g id="tourbillon-balance" class="tourbillon-balance">
+                  <circle cx="0" cy="0" r="28" class="tourbillon-balance-ring" />
+                  <line x1="0" y1="-28" x2="0" y2="28" class="tourbillon-balance-spoke" />
+                  <line x1="-28" y1="0" x2="28" y2="0" class="tourbillon-balance-spoke" />
+                  <path d="M0 0 Q5 5 0 10 Q-10 0 0 -10 Q15 -5 10 10" class="tourbillon-hairspring" />
+                </g>
+
+                <circle cx="0" cy="0" r="3" class="tourbillon-jewel-center" />
+                <circle cx="0" cy="-38" r="2" class="tourbillon-jewel-outer" />
+                <circle cx="0" cy="38" r="2" class="tourbillon-jewel-outer" />
+                <circle cx="-38" cy="0" r="2" class="tourbillon-jewel-outer" />
+                <circle cx="38" cy="0" r="2" class="tourbillon-jewel-outer" />
+              </g>
+            </g>
+
+            <path d="M155 300 L245 300" class="tourbillon-bridge" filter="url(#innerShadow)" />
+            <circle cx="200" cy="300" r="4" class="tourbillon-bridge-cap" />
+          </g>
+
+          <!-- Hands -->
+          <g transform="translate(200, 200)">
+            <g id="hour-hand">
+              <path d="M0 15 L-6 0 L0 -90 L6 0 Z" class="hand-hour" />
+              <rect x="-2" y="-80" width="4" height="40" class="hand-hour-lume" />
+            </g>
+
+            <g id="minute-hand">
+              <path d="M0 15 L-4 0 L0 -130 L4 0 Z" class="hand-minute" />
+              <rect x="-1.5" y="-120" width="3" height="60" class="hand-minute-lume" />
+            </g>
+
+            <g id="second-hand" class="hand-second">
+              <line x1="0" y1="35" x2="0" y2="-140" stroke-width="1" />
+              <circle cx="0" cy="-100" r="3" />
+              <circle cx="0" cy="0" r="4" />
+            </g>
+
+            <circle cx="0" cy="0" r="3" class="hand-center-cap" />
+          </g>
+
+          <!-- Dial reflection -->
+          <path d="M200 20 Q350 20 380 200 Q350 380 200 380 Q50 380 20 200 Q50 20 200 20"
+                class="dial-reflection" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // iCUE API binding — bare assignment is intentional.
+    // Do NOT add var/let/const: iCUE evaluates in sandboxed context.
+    icueEvents = {
+      'onDataUpdated': onIcueDataUpdated,
+      'onICUEInitialized': onIcueInitialized
+    };
+
+    // Required: iCUE may run the widget in a sandboxed Function() context where
+    // injected properties are locals, not window properties. Both paths are needed.
+    function getIcueProperty(name) {
+      if (typeof window !== 'undefined' && Object.prototype.hasOwnProperty.call(window, name)) {
+        var value = window[name];
+        if (value !== undefined && value !== null && value !== '') return value;
+      }
+      try {
+        var value = Function('return typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined')();
+        if (value !== undefined && value !== null && value !== '') return value;
+      } catch (e) {}
+      return undefined;
+    }
+
+    function clampRange(v, min, max, d) {
+      v = Number(v);
+      if (!Number.isFinite(v)) return d;
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function resolveMediaPath(value) {
+      if (!value) return '';
+      if (typeof value === 'string') return value;
+      if (value.pathToAsset) return value.pathToAsset;
+      if (value.path) return value.path;
+      return '';
+    }
+
+    // --- MediaViewer wrapper ---
+    var mediaMount = document.getElementById('media-background');
+
+    function createMediaBackgroundComponent(container) {
+      if (!container) {
+        return { clear: function() {}, loadMedia: function() {} };
+      }
+
+      if (typeof MediaViewer === 'function') {
+        var viewer = new MediaViewer({
+          container: container,
+          onMediaLoaded: function() {
+            container.classList.add('has-media');
+          },
+          onMediaError: function(error) {
+            container.classList.remove('has-media');
+            console.error('Media background error:', error);
+          }
+        });
+        return {
+          clear: function() {
+            viewer.clear();
+            container.classList.remove('has-media');
+          },
+          loadMedia: function(config) {
+            viewer.loadMedia(config);
+          }
+        };
+      }
+
+      // Static fallback when MediaViewer is unavailable (e.g., browser testing)
+      console.warn('MediaViewer is unavailable; using static background fallback.');
+      return {
+        clear: function() {
+          container.style.backgroundImage = '';
+          container.classList.remove('has-media');
+        },
+        loadMedia: function(config) {
+          var assetPath = config ? (config.pathToAsset || config.path || '') : '';
+          if (!assetPath) {
+            container.style.backgroundImage = '';
+            container.classList.remove('has-media');
+            return;
+          }
+          container.style.backgroundImage = "url('" + assetPath + "')";
+          container.style.backgroundRepeat = 'no-repeat';
+          container.style.backgroundPosition = 'center';
+          container.style.backgroundSize = 'cover';
+          container.classList.add('has-media');
+        }
+      };
+    }
+
+    var mediaBackgroundComponent = createMediaBackgroundComponent(mediaMount);
+
+    // --- Tick mark generation ---
+    (function initTicks() {
+      var ticksGroup = document.getElementById('minute-ticks');
+      for (var i = 0; i < 60; i++) {
+        var angle = (i * 6) * (Math.PI / 180);
+        var isHour = i % 5 === 0;
+        var length = isHour ? 15 : 8;
+        var width  = isHour ? 3 : 1;
+
+        var x1 = Math.sin(angle) * (180 - length);
+        var y1 = -Math.cos(angle) * (180 - length);
+        var x2 = Math.sin(angle) * 175;
+        var y2 = -Math.cos(angle) * 175;
+
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke-width', width);
+        line.setAttribute('class', isHour ? 'tick-hour' : 'tick-minute');
+        ticksGroup.appendChild(line);
+      }
+    })();
+
+    // --- Styles & background ---
+    function applyStyles() {
+      var root = document.documentElement;
+
+      var bgTransparency = clampRange(
+        typeof transparency !== 'undefined' ? transparency : 100,
+        0, 100, 100
+      ) / 100;
+      root.style.setProperty('--bg-opacity', bgTransparency);
+
+      root.style.setProperty('--text-color',
+        typeof textColor !== 'undefined' ? textColor : '#ffffff');
+      root.style.setProperty('--accent-color',
+        typeof accentColor !== 'undefined' ? accentColor : '#d4af37');
+      root.style.setProperty('--bg-color',
+        typeof backgroundColor !== 'undefined' ? backgroundColor : '#0a0a0a');
+      root.style.setProperty('--bg-blur',
+        clampRange(typeof glassBlur !== 'undefined' ? glassBlur : 0, 0, 30, 0) + 'px');
+      root.style.setProperty('--second-hand-color',
+        typeof secondHandColor !== 'undefined' ? secondHandColor : '#cc0000');
+
+      // Background image
+      var bgMedia = typeof backgroundMedia !== 'undefined' ? backgroundMedia : undefined;
+      var mediaPath = resolveMediaPath(bgMedia);
+      var hasMedia = typeof bgMedia !== 'undefined' && !!mediaPath;
+
+      if (!hasMedia) {
+        mediaBackgroundComponent.clear();
+        return;
+      }
+
+      mediaBackgroundComponent.loadMedia({
+        path: mediaPath,
+        baseWidth:  bgMedia && typeof bgMedia === 'object' ? bgMedia.baseWidth  : undefined,
+        baseHeight: bgMedia && typeof bgMedia === 'object' ? bgMedia.baseHeight : undefined,
+        scale:      bgMedia && typeof bgMedia === 'object' ? bgMedia.scale      : undefined,
+        positionX:  bgMedia && typeof bgMedia === 'object' ? bgMedia.positionX  : undefined,
+        positionY:  bgMedia && typeof bgMedia === 'object' ? bgMedia.positionY  : undefined,
+        angle:      bgMedia && typeof bgMedia === 'object' ? bgMedia.angle      : undefined
+      });
+    }
+
+    // --- Toggle visibility of complications ---
+    function applyVisibility() {
+      var secHand       = document.getElementById('second-hand');
+      var tourbillonGrp = document.getElementById('tourbillon-group');
+      var dateRoller    = document.getElementById('date-roller');
+      var monthSubdial  = document.getElementById('month-subdial');
+
+      var showSec   = typeof showSeconds    !== 'undefined' ? showSeconds    : true;
+      var showTourb = typeof showTourbillon !== 'undefined' ? showTourbillon : true;
+      var showDt    = typeof showDate       !== 'undefined' ? showDate       : true;
+      var showMonth = typeof showMonthDial  !== 'undefined' ? showMonthDial  : true;
+
+      secHand.style.visibility       = showSec   ? 'visible' : 'hidden';
+      tourbillonGrp.style.visibility = showTourb ? 'visible' : 'hidden';
+      dateRoller.style.visibility    = showDt    ? 'visible' : 'hidden';
+      monthSubdial.style.visibility  = showMonth ? 'visible' : 'hidden';
+    }
+
+    // --- Cached DOM refs — resolved once, never looked up inside the hot loop ---
+    var elSecHand   = document.getElementById('second-hand');
+    var elMinHand   = document.getElementById('minute-hand');
+    var elHrHand    = document.getElementById('hour-hand');
+    var elMonthHand = document.getElementById('month-hand-group');
+    var elDateText  = document.getElementById('date-text');
+    var elTourbCage = document.getElementById('tourbillon-cage');
+    var elTourbBal  = document.getElementById('tourbillon-balance');
+    var reducedMotionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+
+    // Single reusable Date object — avoids per-frame heap allocation + GC pressure
+    var _now = new Date();
+
+    // Throttle guards — skip DOM writes when the value hasn't changed
+    var _lastS = -1, _lastDate = -1, _lastMonth = -1;
+
+    // --- Clock update ---
+    function updateClock() {
+      _now.setTime(Date.now());
+
+      var ms    = _now.getMilliseconds();
+      var s     = _now.getSeconds();
+      var m     = _now.getMinutes();
+      var h     = _now.getHours();
+      var date  = _now.getDate();
+      var month = _now.getMonth();
+      var nowMs = _now.getTime();
+
+      // Second hand — full 60 fps; CSS transform stays on the GPU compositor layer
+      elSecHand.style.transform = 'rotate(' + ((s * 6) + (ms * 0.006)) + 'deg)';
+
+      // Tourbillon cage + balance — drive both from rAF so the escapement stays visibly smooth
+      if (reducedMotionQuery && reducedMotionQuery.matches) {
+        elTourbCage.style.transform = 'rotate(0deg)';
+        elTourbBal.style.transform = 'rotate(0deg)';
+      } else {
+        elTourbCage.style.transform = 'rotate(' + (((nowMs % 60000) / 60000) * 360) + 'deg)';
+        elTourbBal.style.transform  = 'rotate(' + (Math.sin((nowMs / 280) * Math.PI) * 36) + 'deg)';
+      }
+
+      // Minute + hour — update once per second (0.1°/s and 0.008°/s respectively;
+      // the sub-frame delta is physically invisible on any display)
+      if (s !== _lastS) {
+        elMinHand.style.transform = 'rotate(' + ((m * 6) + (s * 0.1)) + 'deg)';
+        elHrHand.style.transform  = 'rotate(' + (((h % 12) * 30) + (m * 0.5)) + 'deg)';
+        _lastS = s;
+      }
+
+      // Date + month — only write when the value actually changes
+      if (date !== _lastDate) {
+        elDateText.textContent = date;
+        _lastDate = date;
+      }
+      if (month !== _lastMonth) {
+        elMonthHand.style.transform = 'rotate(' + (month * 30) + 'deg)';
+        _lastMonth = month;
+      }
+
+      requestAnimationFrame(updateClock);
+    }
+
+    // --- Widget lifecycle ---
+    function onIcueDataUpdated() {
+      applyStyles();
+      applyVisibility();
+    }
+
+    function onIcueInitialized() {
+      onIcueDataUpdated();
+    }
+
+    // Start the clock immediately
+    updateClock();
+
+    // Initial render for browser testing
+    if (typeof iCUE_initialized !== 'undefined' && iCUE_initialized) {
+      onIcueInitialized();
+    } else {
+      onIcueDataUpdated();
+    }
+  </script>
+</body>
+</html>

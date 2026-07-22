@@ -1,0 +1,433 @@
+/******************************************************************************
+ **
+ ** File      AirQuality.css
+ ** Author    Ihor Vashchyshyn
+ ** Copyright (c) 2026, Corsair Memory, Inc. All Rights Reserved.
+ **
+ ** This file is part of Corsair iCUE Software.
+ **
+ ******************************************************************************/
+
+@font-face {
+	font-family: SairaRegular;
+	src: url("qrc:/fonts/Saira-Regular.ttf");
+}
+
+@font-face {
+	font-family: SairaMedium;
+	src: url("qrc:/fonts/Saira-Medium.ttf");
+}
+
+@font-face {
+	font-family: SairaLight;
+	src: url("qrc:/fonts/Saira-Light.ttf");
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	font-family: SairaRegular;
+}
+
+:root {
+	--text-color: #ffffff;
+	--accent-color: #ffffff;
+	--bg-color: #000000;
+	--widget-opacity: 1;
+	--progress-percent: 0;
+}
+
+.widget-background {
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: var(--bg-color);
+	position: absolute;
+	overflow: hidden;
+	opacity: var(--widget-opacity);
+	z-index: -1;
+}
+
+#media-background {
+	width: 100%;
+	height: 100%;
+	position: relative;
+}
+
+.aqi-widget {
+	display: flex;
+
+	width: 100%;
+	height: 100%;
+
+	align-items: center;
+	justify-content: center;
+}
+
+.card {
+	display: flex;
+	flex-direction: row;
+	gap: 17vmin;
+
+	width: 100%;
+	height: 100%;
+
+	border-radius: 2vh;
+
+	align-items: center;
+	justify-content: center;
+}
+
+.aqi-gauge {
+	position: relative;
+
+	height: 85vmin;
+	width: 85vmin;
+	aspect-ratio: 1 / 1;
+
+	border-radius: 50%;
+	background: linear-gradient(to bottom, #ffffff55 0%, transparent 100%);
+}
+
+#aqi-header {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+
+	align-items: center;
+	justify-content: center;
+
+	padding-top: 2vmin;
+}
+
+#aqi-title {
+	color: var(--text-color);
+	text-align: center;
+	font-size: 3.5vmin;
+}
+
+#city-name {
+	font-size: 5.8vmin;
+	color: var(--text-color);
+	opacity: 0.8;
+
+	text-align: center;
+
+	max-width: 65%;
+
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#aqi-value {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	font-size: 27vmin;
+	font-family: SairaLight;
+	line-height: 1.1;
+
+	color: var(--accent-color);
+}
+
+#aqi-footer {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translate(-50%, -100%);
+
+	align-items: center;
+	gap: 0.8vmin;
+}
+
+#aqi-category {
+	width: 55%;
+
+	text-align: center;
+	font-family: SairaMedium;
+	font-size: 6vmin;
+	line-height: 1.1;
+
+	-webkit-text-fill-color: transparent;
+
+	background-color: black;
+	background-clip: text;
+	background-size: 1000% 100%;
+	background-position: calc(var(--progress-percent) * 1%) 0%;
+	background-repeat: no-repeat;
+
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#aqi-updated {
+	color: var(--text-color);
+	font-size: 4vmin;
+	line-height: 1;
+}
+
+#aqi-value-bar {
+	position: absolute;
+
+	top: 0;
+	width: 100%;
+	height: 100%;
+}
+
+#aqi-tip {
+	display: flex;
+	position: absolute;
+
+	align-items: center;
+	justify-content: center;
+
+	padding: 0;
+	margin: 0;
+
+	top: 50%;
+	left: 0;
+	transform-origin: calc(42.5vmin + 50%) 50%;
+	transform: translate(-50%, -50%) rotate(calc(-54deg + (var(--progress-percent) * 2.88deg)));
+
+	border-radius: 50%;
+
+	background-color: black;
+	background-size: 1000% 100%;
+	background-position: calc(var(--progress-percent) * 1%) 0%;
+	background-repeat: no-repeat;
+
+	width: 6.125vmin;
+	height: 6.125vmin;
+}
+
+#aqi-tip-circle {
+	width: 1.75vmin;
+	aspect-ratio: 1 / 1;
+
+	border-radius: 50%;
+	background-color: white;
+
+	border: 0.875vmin solid #141414;
+}
+
+#aqi-value-bar {
+	overflow: visible;
+}
+
+circle {
+	fill: none;
+}
+
+circle:nth-child(1) {
+	stroke: var(--text-color);
+	stroke-width: 3px;
+	stroke-dasharray: 754;
+	transform-origin: center;
+	transform: rotate(126deg);
+	stroke-linecap: round;
+}
+
+circle:nth-child(2) {
+	stroke: rgb(2, 117, 232);
+	stroke-width: 9px;
+
+	/* (2 * PI * R) */
+	stroke-dasharray: 942;
+
+	/* (2 * 3.14 * 150) - 20% */
+	stroke-dashoffset: calc(942 - (754 * var(--progress-percent)) / 100);
+
+	transform-origin: center;
+	transform: rotate(126deg);
+	stroke-linecap: round;
+}
+
+.detailed-metrics {
+	display: flex;
+	flex-direction: column;
+
+	width: 65vmin;
+	gap: 5vmin;
+	padding: 10vmin 2vmin 10vmin 2vmin;
+	margin: 0;
+
+	align-content: center;
+	justify-items: center;
+}
+
+.compact-metrics {
+	display: none;
+	flex-direction: row;
+
+	position: absolute;
+	top: 70%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+
+	gap: 5vmin;
+	padding: 10vmin 2vmin 10vmin 2vmin;
+	margin: 0;
+
+	align-content: center;
+	justify-items: center;
+}
+
+.pollutant {
+	display: flex;
+
+	align-items: center;
+	justify-content: space-between;
+}
+
+.detailed-metrics .pollutant {
+	flex-direction: row;
+	padding-bottom: 3.4vmin;
+}
+
+.detailed-metrics .pollutant:not(:last-child) {
+	border-bottom: 1px solid #ccc;
+}
+
+.compact-metrics .pollutant {
+	flex-direction: column;
+	padding-right: 2vmin;
+}
+
+.compact-metrics .pollutant:not(:last-child) {
+	border-right: 1px solid #ccc;
+}
+
+.p-label {
+	font-size: 4.8vmin;
+	color: var(--text-color);
+	line-height: 1;
+	white-space: nowrap;
+}
+
+.compact-metrics .p-label {
+	font-size: 3.45vmin;
+}
+
+.p-value {
+	margin-top: 0.3em;
+	font-size: 4.8vmin;
+	color: var(--text-color);
+	line-height: 1.05;
+	white-space: nowrap;
+}
+
+.compact-metrics .p-value {
+	font-size: 3.45vmin;
+}
+
+.aqi-widget.has-error .card {
+	display: none;
+}
+
+.error {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	border-radius: 2vh;
+}
+
+.aqi-widget.has-error .error {
+	display: flex;
+}
+
+.error-text {
+	color: var(--text-color);
+	font-size: 5vh;
+	text-align: center;
+	padding: 0 3vh;
+}
+
+@media (orientation: portrait) {
+	.card {
+		flex-direction: column;
+		gap: 12vmin;
+	}
+
+	.detailed-metrics {
+		width: 86.5vmin;
+	}
+}
+
+/* Coruscant S - Small Horizontal */
+@media (min-aspect-ratio: 840 / 346) and (max-aspect-ratio: 840 / 342) {
+	.detailed-metrics {
+		display: none;
+	}
+}
+
+/* Coruscant S - Small Vertical */
+@media (min-aspect-ratio: 696 / 418) and (max-aspect-ratio: 696 / 414) {
+	.detailed-metrics {
+		display: none;
+	}
+}
+
+@media (min-aspect-ratio: 696 / 840) and (max-aspect-ratio: 840 / 696) {
+	.detailed-metrics {
+		display: none;
+	}
+
+	.compact-metrics {
+		display: flex;
+	}
+	#aqi-value {
+		top: 42%;
+	}
+}
+
+/* For pumps */
+@media (aspect-ratio: 1 / 1) {
+	.detailed-metrics {
+		display: none;
+	}
+	.compact-metrics {
+		display: none;
+	}
+	#aqi-value {
+		top: 50%;
+	}
+}
+
+@media (min-aspect-ratio: 1.45) and (max-aspect-ratio: 1.47), (min-aspect-ratio: 1.46) and (max-aspect-ratio: 1.48) {
+	/* 248/170 = 1.46, 125/85 = 1.47 Keyboard UI and physical screen correspondingly */
+	.detailed-metrics {
+		display: none;
+	}
+	.compact-metrics {
+		display: none;
+	}
+	#aqi-title {
+		display: none;
+	}
+	#aqi-updated {
+		display: none;
+	}
+	#aqi-value {
+		top: 50%;
+	}
+	#aqi-header {
+		padding-top: 8vmin;
+	}
+}

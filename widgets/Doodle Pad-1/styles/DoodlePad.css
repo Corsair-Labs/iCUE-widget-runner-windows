@@ -1,0 +1,266 @@
+/* === DoodlePad Widget === */
+
+:root {
+  --bg-color: #4b4b4b;
+  --bg-opacity: 1;
+  --bg-blur: 0px;
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* === Widget Root === */
+.widget-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* === Background Stack === */
+.widget-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--bg-opacity);
+  transition: opacity 0.2s ease;
+}
+
+.main-glass {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-color);
+}
+
+#media-background {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  filter: blur(var(--bg-blur, 0px));
+}
+
+/* === Canvas === */
+#drawCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* === Toolbar === */
+.toolbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.5vh, 16px);
+  padding: clamp(12px, 2vh, 24px) clamp(16px, 3vw, 32px);
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: clamp(24px, 5vh, 48px) clamp(24px, 5vh, 48px) 0 0;
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.toolbar.visible {
+  transform: translateY(0);
+}
+
+/* === Toolbar Rows === */
+.toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 2vw, 32px);
+}
+
+/* === Color Buttons === */
+.color-btn {
+  position: relative;
+  width: clamp(36px, 6vh, 80px);
+  height: clamp(36px, 6vh, 80px);
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.color-btn:active {
+  transform: scale(0.9);
+}
+
+.color-swatch {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+.color-btn.selected {
+  outline: clamp(2px, 0.4vh, 4px) solid rgba(255, 255, 255, 0.9);
+  outline-offset: clamp(2px, 0.4vh, 4px);
+}
+
+/* === Tool Buttons === */
+.tool-btn {
+  width: clamp(36px, 6vh, 80px);
+  height: clamp(36px, 6vh, 80px);
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  padding: clamp(8px, 1.2vh, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, transform 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tool-btn:active {
+  transform: scale(0.9);
+}
+
+.tool-btn.selected {
+  background: rgba(255, 255, 255, 0.35);
+  outline: clamp(2px, 0.4vh, 4px) solid rgba(255, 255, 255, 0.9);
+  outline-offset: clamp(1px, 0.2vh, 2px);
+}
+
+.tool-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.tool-btn:disabled:active {
+  transform: none;
+}
+
+.tool-btn svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* === Toolbar Handle === */
+.toolbar-handle {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  width: clamp(44px, 7vh, 60px);
+  height: clamp(44px, 7vh, 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: clamp(12px, 1.8vh, 18px);
+  color: #ffffff;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.25s ease, background 0.15s ease;
+}
+
+.toolbar-handle svg {
+  width: 100%;
+  height: 100%;
+}
+
+.toolbar-handle:active {
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.toolbar-handle.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* === Minimize Button === */
+.minimize-btn {
+  background: transparent !important;
+  outline: none !important;
+}
+
+#minimizeRow {
+  margin-bottom: clamp(-4px, -0.5vh, -2px);
+}
+
+/* === Responsive: small height (Xeneon Edge S) === */
+@media (max-height: 420px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(5px, 1vh, 10px);
+    padding: clamp(6px, 1vh, 10px) clamp(12px, 2vw, 24px);
+    border-radius: clamp(16px, 3vh, 32px) clamp(16px, 3vh, 32px) 0 0;
+  }
+
+  #minimizeRow {
+    display: none;
+  }
+
+  .toolbar-row {
+    gap: clamp(6px, 1.5vw, 16px);
+    justify-content: center;
+  }
+
+  .color-btn,
+  .tool-btn {
+    width: clamp(28px, 6vh, 44px);
+    height: clamp(28px, 6vh, 44px);
+  }
+
+  .tool-btn {
+    padding: clamp(6px, 1vh, 10px);
+  }
+}
+
+/* === Reduced motion === */
+@media (prefers-reduced-motion: reduce) {
+  .toolbar {
+    transition: none;
+  }
+
+  .color-btn,
+  .tool-btn {
+    transition: none;
+  }
+}

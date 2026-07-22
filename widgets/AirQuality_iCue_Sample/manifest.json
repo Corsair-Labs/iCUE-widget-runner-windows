@@ -1,0 +1,31 @@
+{
+  "author": "Corsair Team",
+  "id": "com.corsair.airquality",
+  "name": "AQI",
+  "description": "Air quality widget",
+  "version": "1.0.0",
+  "preview_icon": "resources/AirQuality.svg",
+  "min_framework_version": "1.0.1",
+  "os": [
+    {
+      "platform": "windows"
+    },
+    {
+      "platform": "mac"
+    }
+  ],
+  "supported_devices": [
+    {
+      "type": "pump_lcd"
+    },
+    {
+      "type": "keyboard_lcd"
+    },
+    {
+      "type": "dashboard_lcd",
+      "features": ["sensor-screen"]
+    }
+  ],
+  "interactive": false,
+  "modules": ["modules/OpenMeteo.mjs"]
+}

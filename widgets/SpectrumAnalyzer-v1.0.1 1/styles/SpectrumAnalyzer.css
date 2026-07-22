@@ -1,0 +1,140 @@
+/* ══════════════════════════════════════════════════════════════
+   Spectrum Analyzer — SpectrumAnalyzer.css
+   Companion to VU Stereo Meter — same structural patterns.
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --text-color: #ffffff;
+  --accent-color: #7b2fff;
+  --bg-color: #000000;
+  --bg-opacity: 1;
+  --bg-blur: 0px;
+  --bg-brightness: 100%;
+
+  /* Responsive token defaults — overridden at runtime by JS */
+  --layout-base: min(100vw, 100vh);
+  --fs-primary:   clamp(18px, calc(var(--layout-base) * 0.11), 180px);
+  --fs-secondary: clamp(12px, calc(var(--layout-base) * 0.05), 72px);
+  --fs-label:     clamp(11px, calc(var(--layout-base) * 0.038), 48px);
+}
+
+html { overflow: hidden; }
+
+body {
+  margin: 0; padding: 0;
+  width: 100vw; height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  font-family: Serpentine, Orbitron, 'Arial Narrow', Arial, sans-serif;
+  background: transparent;
+}
+
+* { box-sizing: border-box; }
+
+/* ── Widget shell ─────────────────────────────────────────────── */
+.widget-root {
+  position: relative;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  color: var(--text-color);
+}
+
+.widget-background {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  overflow: hidden; z-index: 0;
+  opacity: var(--bg-opacity);
+  transition: opacity 0.2s;
+}
+
+.main-glass {
+  position: absolute; inset: 0;
+  background-color: var(--bg-color);
+  z-index: 0;
+}
+
+#media-background {
+  width: 100%; height: 100%;
+  position: relative;
+  filter: blur(var(--bg-blur)) brightness(var(--bg-brightness));
+  z-index: 1;
+}
+
+.main-content {
+  position: relative; z-index: 2;
+  width: 100%; height: 100%;
+}
+
+/* ── State panels ─────────────────────────────────────────────── */
+.loading-state,
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%; height: 100%;
+  font-size: var(--fs-secondary);
+  letter-spacing: 3px;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  opacity: 0.75;
+  color: #33aa22;
+}
+
+.sa-loading-icon {
+  font-size: var(--fs-primary);
+  animation: saPulse 1.4s ease-in-out infinite;
+}
+
+.state-sub {
+  font-size: var(--fs-label);
+  opacity: 0.55;
+  letter-spacing: 1px;
+  text-align: center;
+  padding: 0 16px;
+}
+
+@keyframes saPulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.92); }
+  50%       { opacity: 1;    transform: scale(1.06); }
+}
+
+/* ── Canvas ───────────────────────────────────────────────────── */
+#sa-canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: crisp-edges;
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* ── Status pill (LIVE / SIM / BRIDGE) ───────────────────────── */
+.sa-status {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  font-size: clamp(9px, 1.2vw, 12px);
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
+  letter-spacing: 1px;
+  color: #556644;
+  z-index: 10;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Size overrides ───────────────────────────────────────────── */
+/* S-H (840×344): keep status pill smaller */
+body.size-s.orient-h .sa-status { font-size: 9px; bottom: 5px; right: 8px; }
+
+/* L/XL: larger status pill */
+body.size-l.orient-h .sa-status,
+body.size-xl.orient-h .sa-status { font-size: 13px; }
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

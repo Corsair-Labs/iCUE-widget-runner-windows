@@ -1,0 +1,26 @@
+# Installed dependencies
+node_modules/
+
+# Packaged output
+iCue_Widget_Runner_Engine.zip
+iCue_Widget_Runner_Engine.7z
+dist/
+out/
+
+# Logs and local runtime data
+*.log
+npm-debug.log*
+*.pid
+
+# Local environment overrides
+.env
+.env.*
+!.env.example
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp

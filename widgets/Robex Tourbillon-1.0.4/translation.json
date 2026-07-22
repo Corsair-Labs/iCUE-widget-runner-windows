@@ -1,0 +1,230 @@
+{
+  "en": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Clock Face",
+      "Clock Settings": "Clock Settings",
+      "Show Second Hand": "Show Second Hand",
+      "Show Tourbillon": "Show Tourbillon",
+      "Show Date": "Show Date",
+      "Show Month Dial": "Show Month Dial",
+      "Second Hand Color": "Second Hand Color",
+      "Widget Personalization": "Widget Personalization",
+      "Background Image": "Background Image",
+      "Glass Blur": "Glass Blur",
+      "Text Color": "Text Color",
+      "Accent Color": "Accent Color",
+      "Background": "Background",
+      "Background Transparency": "Background Transparency"
+    }
+  },
+  "de": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Zifferblatt",
+      "Clock Settings": "Uhr-Einstellungen",
+      "Show Second Hand": "Sekundenzeiger anzeigen",
+      "Show Tourbillon": "Tourbillon anzeigen",
+      "Show Date": "Datum anzeigen",
+      "Show Month Dial": "Monatszifferblatt anzeigen",
+      "Second Hand Color": "Sekundenzeigerfarbe",
+      "Widget Personalization": "Widget-Personalisierung",
+      "Background Image": "Hintergrundbild",
+      "Glass Blur": "Glasunschärfe",
+      "Text Color": "Textfarbe",
+      "Accent Color": "Akzentfarbe",
+      "Background": "Hintergrund",
+      "Background Transparency": "Hintergrundtransparenz"
+    }
+  },
+  "es": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Esfera del reloj",
+      "Clock Settings": "Ajustes del reloj",
+      "Show Second Hand": "Mostrar segundero",
+      "Show Tourbillon": "Mostrar Tourbillon",
+      "Show Date": "Mostrar fecha",
+      "Show Month Dial": "Mostrar esfera del mes",
+      "Second Hand Color": "Color del segundero",
+      "Widget Personalization": "Personalización del widget",
+      "Background Image": "Imagen de fondo",
+      "Glass Blur": "Desenfoque de cristal",
+      "Text Color": "Color del texto",
+      "Accent Color": "Color de acento",
+      "Background": "Fondo",
+      "Background Transparency": "Transparencia del fondo"
+    }
+  },
+  "fr": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Cadran",
+      "Clock Settings": "Paramètres de l'horloge",
+      "Show Second Hand": "Afficher la trotteuse",
+      "Show Tourbillon": "Afficher le Tourbillon",
+      "Show Date": "Afficher la date",
+      "Show Month Dial": "Afficher le cadran du mois",
+      "Second Hand Color": "Couleur de la trotteuse",
+      "Widget Personalization": "Personnalisation du widget",
+      "Background Image": "Image d'arrière-plan",
+      "Glass Blur": "Flou de verre",
+      "Text Color": "Couleur du texte",
+      "Accent Color": "Couleur d'accentuation",
+      "Background": "Arrière-plan",
+      "Background Transparency": "Transparence de l'arrière-plan"
+    }
+  },
+  "it": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Quadrante",
+      "Clock Settings": "Impostazioni orologio",
+      "Show Second Hand": "Mostra lancetta dei secondi",
+      "Show Tourbillon": "Mostra Tourbillon",
+      "Show Date": "Mostra data",
+      "Show Month Dial": "Mostra quadrante del mese",
+      "Second Hand Color": "Colore lancetta dei secondi",
+      "Widget Personalization": "Personalizzazione widget",
+      "Background Image": "Immagine di sfondo",
+      "Glass Blur": "Sfocatura vetro",
+      "Text Color": "Colore del testo",
+      "Accent Color": "Colore di accento",
+      "Background": "Sfondo",
+      "Background Transparency": "Trasparenza dello sfondo"
+    }
+  },
+  "ja": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "文字盤",
+      "Clock Settings": "時計の設定",
+      "Show Second Hand": "秒針を表示",
+      "Show Tourbillon": "Tourbillonを表示",
+      "Show Date": "日付を表示",
+      "Show Month Dial": "月表示ダイヤルを表示",
+      "Second Hand Color": "秒針の色",
+      "Widget Personalization": "ウィジェットのカスタマイズ",
+      "Background Image": "背景画像",
+      "Glass Blur": "ガラスぼかし",
+      "Text Color": "テキストの色",
+      "Accent Color": "アクセントカラー",
+      "Background": "背景",
+      "Background Transparency": "背景の透明度"
+    }
+  },
+  "ko": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "시계 페이스",
+      "Clock Settings": "시계 설정",
+      "Show Second Hand": "초침 표시",
+      "Show Tourbillon": "Tourbillon 표시",
+      "Show Date": "날짜 표시",
+      "Show Month Dial": "월 다이얼 표시",
+      "Second Hand Color": "초침 색상",
+      "Widget Personalization": "위젯 개인 설정",
+      "Background Image": "배경 이미지",
+      "Glass Blur": "유리 블러",
+      "Text Color": "텍스트 색상",
+      "Accent Color": "강조 색상",
+      "Background": "배경",
+      "Background Transparency": "배경 투명도"
+    }
+  },
+  "pt": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Mostrador",
+      "Clock Settings": "Configurações do relógio",
+      "Show Second Hand": "Mostrar ponteiro dos segundos",
+      "Show Tourbillon": "Mostrar Tourbillon",
+      "Show Date": "Mostrar data",
+      "Show Month Dial": "Mostrar mostrador do mês",
+      "Second Hand Color": "Cor do ponteiro dos segundos",
+      "Widget Personalization": "Personalização do widget",
+      "Background Image": "Imagem de fundo",
+      "Glass Blur": "Desfoque de vidro",
+      "Text Color": "Cor do texto",
+      "Accent Color": "Cor de destaque",
+      "Background": "Fundo",
+      "Background Transparency": "Transparência do fundo"
+    }
+  },
+  "ru": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Циферблат",
+      "Clock Settings": "Настройки часов",
+      "Show Second Hand": "Показать секундную стрелку",
+      "Show Tourbillon": "Показать Tourbillon",
+      "Show Date": "Показать дату",
+      "Show Month Dial": "Показать циферблат месяца",
+      "Second Hand Color": "Цвет секундной стрелки",
+      "Widget Personalization": "Персонализация виджета",
+      "Background Image": "Фоновое изображение",
+      "Glass Blur": "Размытие стекла",
+      "Text Color": "Цвет текста",
+      "Accent Color": "Цвет акцента",
+      "Background": "Фон",
+      "Background Transparency": "Прозрачность фона"
+    }
+  },
+  "zh_CN": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "表盘",
+      "Clock Settings": "时钟设置",
+      "Show Second Hand": "显示秒针",
+      "Show Tourbillon": "显示Tourbillon",
+      "Show Date": "显示日期",
+      "Show Month Dial": "显示月份表盘",
+      "Second Hand Color": "秒针颜色",
+      "Widget Personalization": "小组件个性化",
+      "Background Image": "背景图片",
+      "Glass Blur": "玻璃模糊",
+      "Text Color": "文字颜色",
+      "Accent Color": "强调色",
+      "Background": "背景",
+      "Background Transparency": "背景透明度"
+    }
+  },
+  "zh_TW": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "錶盤",
+      "Clock Settings": "時鐘設定",
+      "Show Second Hand": "顯示秒針",
+      "Show Tourbillon": "顯示Tourbillon",
+      "Show Date": "顯示日期",
+      "Show Month Dial": "顯示月份錶盤",
+      "Second Hand Color": "秒針顏色",
+      "Widget Personalization": "小工具個人化",
+      "Background Image": "背景圖片",
+      "Glass Blur": "玻璃模糊",
+      "Text Color": "文字顏色",
+      "Accent Color": "強調色",
+      "Background": "背景",
+      "Background Transparency": "背景透明度"
+    }
+  },
+  "uk": {
+    "translation": {
+      "Robex Tourbillon": "Robex Tourbillon",
+      "Clock Face": "Циферблат",
+      "Clock Settings": "Налаштування годинника",
+      "Show Second Hand": "Показати секундну стрілку",
+      "Show Tourbillon": "Показати Tourbillon",
+      "Show Date": "Показати дату",
+      "Show Month Dial": "Показати циферблат місяця",
+      "Second Hand Color": "Колір секундної стрілки",
+      "Widget Personalization": "Персоналізація віджета",
+      "Background Image": "Фонове зображення",
+      "Glass Blur": "Розмиття скла",
+      "Text Color": "Колір тексту",
+      "Accent Color": "Колір акценту",
+      "Background": "Фон",
+      "Background Transparency": "Прозорість фону"
+    }
+  }
+}

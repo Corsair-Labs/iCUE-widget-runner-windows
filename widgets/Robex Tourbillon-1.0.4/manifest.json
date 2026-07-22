@@ -1,0 +1,18 @@
+{
+  "author": "shocksim",
+  "id": "com.shocksim.robextourbillon",
+  "name": "Robex Tourbillon",
+  "description": "Luxury animated tourbillon watch face with date roller, month subdial, and smooth sweeping hands",
+  "version": "1.0.4",
+  "preview_icon": "resources/icon.svg",
+  "min_framework_version": "1.0.0",
+  "os": [
+    { "platform": "windows" }
+  ],
+  "supported_devices": [
+    { "type": "dashboard_lcd" },
+    { "type": "pump_lcd" },
+    { "type": "keyboard_lcd" }
+  ],
+  "interactive": false
+}

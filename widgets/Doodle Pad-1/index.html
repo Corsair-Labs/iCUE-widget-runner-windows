@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tr('Doodle pad')</title>
+  <link rel="icon" type="image/svg+xml" href="resources/doodlepad.svg">
+
+  <!-- Xeneon Edge only, touch required -->
+  <meta name="x-icue-restrictions" data-restrictions='[{ "device": "dashboard_lcd", "features": ["sensor-screen"] }]'>
+  <meta name="x-icue-interactive">
+  <meta name="x-icue-widget-preview" content="resources/doodlepad-preview.png">
+
+  <!-- MediaViewer — inlined to avoid iCUE file:// script-loading restrictions -->
+  <style>
+.position-container { position: absolute; transform-origin: top left; }
+.scale-container { transform-origin: top left; }
+.rotation-container { transform-origin: center center; }
+.rotation-container img, .rotation-container video { display: block; object-fit: contain; }
+  </style>
+  <script>
+class MediaViewer {
+  constructor(options = {}) {
+    this.container = options.container;
+    this.onMediaLoaded = options.onMediaLoaded || (() => {});
+    this.onMediaError = options.onMediaError || (() => {});
+    this.debug = options.debug || false;
+    this.positionContainer = null;
+    this.scaleContainer = null;
+    this.rotationContainer = null;
+    this.mediaElement = null;
+    this.currentMediaPath = null;
+    this.supportedImageFormats = ["jpg","jpeg","png","gif","bmp","webp","svg","ico"];
+    this.supportedVideoFormats = ["mp4","webm","ogg","mov","avi","mkv"];
+    if (!this.container) throw new Error("MediaViewer: container is required");
+  }
+  getFileExtension(p) { return p.split(".").pop().toLowerCase(); }
+  isImageFile(e) { return this.supportedImageFormats.includes(e); }
+  isVideoFile(e) { return this.supportedVideoFormats.includes(e); }
+  log(...a) { if (this.debug) console.log("[MediaViewer]", ...a); }
+  warn(...a) { if (this.debug) console.warn("[MediaViewer]", ...a); }
+  error(...a) { console.error("[MediaViewer]", ...a); }
+  createImageElement(filePath) {
+    const img = document.createElement("img");
+    img.src = filePath;
+    img.onerror = () => { this.error("Failed to load image:", filePath); this.onMediaError(new Error("Failed to load image: " + filePath)); };
+    img.onload  = () => { this.log("Image loaded:", filePath); this.onMediaLoaded(img); };
+    return img;
+  }
+  createVideoElement(filePath) {
+    const video = document.createElement("video");
+    video.controls = false; video.autoplay = true; video.loop = true; video.muted = true; video.playsInline = true;
+    video.addEventListener("loadeddata", () => {
+      video.play().then(() => { this.onMediaLoaded(video); }).catch(e => { this.error("Error playing video:", e); this.onMediaError(e); });
+    });
+    video.addEventListener("error", e => { this.error("Video error:", e); this.onMediaError(new Error("Video error: " + (video.error?.message || "Unknown"))); });
+    video.src = filePath;
+    return video;
+  }
+  createMediaElement(filePath) {
+    const ext = this.getFileExtension(filePath);
+    if (this.isImageFile(ext)) return this.createImageElement(filePath);
+    if (this.isVideoFile(ext)) return this.createVideoElement(filePath);
+    this.error("Unsupported format:", ext); this.onMediaError(new Error("Unsupported format: " + ext)); return null;
+  }
+  createContainers() {
+    this.positionContainer = document.createElement("div"); this.positionContainer.className = "position-container";
+    this.scaleContainer    = document.createElement("div"); this.scaleContainer.className    = "scale-container";
+    this.rotationContainer = document.createElement("div"); this.rotationContainer.className = "rotation-container";
+    this.rotationContainer.appendChild(this.mediaElement);
+    this.scaleContainer.appendChild(this.rotationContainer);
+    this.positionContainer.appendChild(this.scaleContainer);
+    return this.positionContainer;
+  }
+  applyTransform(params = {}) {
+    if (!this.positionContainer) return;
+    const baseWidth  = params.baseWidth  || 100;
+    const baseHeight = params.baseHeight || 100;
+    const scaleValue = params.scale !== undefined ? params.scale : 1;
+    const posX = params.positionX || 0;
+    const posY = params.positionY || 0;
+    const rotation = params.angle || 0;
+    const cw = this.container.clientWidth;
+    const ch = this.container.clientHeight;
+    const minScale = Math.min(cw / baseWidth, ch / baseHeight);
+    this.positionContainer.style.transform = `translate(${posX * minScale}px, ${posY * minScale}px)`;
+    this.scaleContainer.style.transform    = `scale(${scaleValue * minScale})`;
+    this.rotationContainer.style.transform = `rotate(${rotation}deg)`;
+  }
+  loadMedia(params = {}) {
+    const filePath = params.path;
+    if (!filePath) { this.clear(); return; }
+    const decoded = decodeURIComponent(filePath);
+    if (this.currentMediaPath === decoded) { this.applyTransform(params); return; }
+    this.clear();
+    this.mediaElement = this.createMediaElement(decoded);
+    if (!this.mediaElement) return;
+    this.container.appendChild(this.createContainers());
+        this.applyTransform(params);
+    this.currentMediaPath = decoded;
+  }
+  clear() {
+    this.container.innerHTML = "";
+        this.positionContainer = this.scaleContainer = this.rotationContainer = this.mediaElement = this.currentMediaPath = null;
+  }
+  destroy() { this.clear(); this.container = this.onMediaLoaded = this.onMediaError = null; }
+}
+  </script>
+
+
+  <!-- Widget Personalization -->
+  <meta name="x-icue-property" content="backgroundColor" data-label="tr('Background Color')" data-type="color" data-default="'#4b4b4b'">
+  <meta name="x-icue-property" content="backgroundMedia" data-label="tr('Background Media')" data-type="media-selector" data-filters="['*.png','*.jpg','*.jpeg','*.webp']">
+  <meta name="x-icue-property" content="glassBlur" data-label="tr('Glass Blur')" data-type="slider" data-default="0" data-min="0" data-max="20" data-step="1" data-unit-label="'px'">
+  <meta name="x-icue-property" content="transparency" data-label="tr('Background Transparency')" data-type="slider" data-min="0" data-max="100" data-step="1" data-default="100" data-unit-label="'%'">
+
+  <!-- Palette Colors -->
+  <meta name="x-icue-property" content="color1" data-label="tr('Color 1')" data-type="color" data-default="'#785aff'">
+  <meta name="x-icue-property" content="color2" data-label="tr('Color 2')" data-type="color" data-default="'#b9ed2d'">
+  <meta name="x-icue-property" content="color3" data-label="tr('Color 3')" data-type="color" data-default="'#e6027d'">
+  <meta name="x-icue-property" content="color4" data-label="tr('Color 4')" data-type="color" data-default="'#1ecfdf'">
+  <meta name="x-icue-property" content="color5" data-label="tr('Color 5')" data-type="color" data-default="'#fac800'">
+
+  <script id="x-icue-groups" type="application/json">
+  [
+    { "title": "tr('Doodle Pad')", "properties": ["color1", "color2", "color3", "color4", "color5"] },
+    { "title": "tr('Widget Personalization')", "properties": ["backgroundColor", "backgroundMedia", "glassBlur", "transparency"] }
+  ]
+  </script>
+
+  <link rel="stylesheet" type="text/css" href="styles/DoodlePad.css">
+</head>
+<body>
+  <div class="widget-root">
+    <!-- Background stack -->
+    <div class="widget-background" aria-hidden="true">
+      <div class="main-glass"></div>
+      <div id="media-background"></div>
+    </div>
+
+    <!-- Drawing canvas -->
+    <canvas id="drawCanvas"></canvas>
+
+    <!-- Panel toggle handle (visible when toolbar is hidden) -->
+    <button class="toolbar-handle" id="toolbarHandle" aria-label="Show toolbar">
+      <svg viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 11L12 3L21 11" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <!-- Toolbar -->
+    <div class="toolbar" id="toolbar">
+      <!-- Minimize row -->
+      <div class="toolbar-row" id="minimizeRow">
+        <button class="tool-btn minimize-btn" id="minimizeBtn" aria-label="Hide toolbar">
+          <svg viewBox="0 0 24 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 3L12 11L21 3" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Color palette row -->
+      <div class="toolbar-row" id="colorRow">
+        <button class="color-btn selected" data-color-index="0" aria-label="Color 1">
+          <span class="color-swatch"></span>
+        </button>
+        <button class="color-btn" data-color-index="1" aria-label="Color 2">
+          <span class="color-swatch"></span>
+        </button>
+        <button class="color-btn" data-color-index="2" aria-label="Color 3">
+          <span class="color-swatch"></span>
+        </button>
+        <button class="color-btn" data-color-index="3" aria-label="Color 4">
+          <span class="color-swatch"></span>
+        </button>
+        <button class="color-btn" data-color-index="4" aria-label="Color 5">
+          <span class="color-swatch"></span>
+        </button>
+        <button class="color-btn" data-color-index="5" aria-label="White">
+          <span class="color-swatch"></span>
+        </button>
+        <button class="color-btn" data-color-index="6" aria-label="Black">
+          <span class="color-swatch"></span>
+        </button>
+      </div>
+
+      <!-- Tools row -->
+      <div class="toolbar-row" id="toolRow">
+        <button class="tool-btn" id="eraserBtn" aria-label="Eraser">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21"/>
+            <path d="m5.082 11.09 8.828 8.828"/>
+          </svg>
+        </button>
+        <button class="tool-btn brush-btn selected" data-size="4" aria-label="Small brush">
+          <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="5" fill="currentColor"/></svg>
+        </button>
+        <button class="tool-btn brush-btn" data-size="10" aria-label="Medium brush">
+          <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="9" fill="currentColor"/></svg>
+        </button>
+        <button class="tool-btn brush-btn" data-size="20" aria-label="Large brush">
+          <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="14" fill="currentColor"/></svg>
+        </button>
+        <button class="tool-btn" id="undoBtn" aria-label="Undo" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 14 4 9l5-5"/>
+            <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="redoBtn" aria-label="Redo" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m15 14 5-5-5-5"/>
+            <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13"/>
+          </svg>
+        </button>
+        <button class="tool-btn" id="clearBtn" aria-label="Clear canvas">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 12H38"/>
+            <path d="M16 12V8H32V12"/>
+            <path d="M13 12L15 40H33L35 12"/>
+            <path d="M20 18V34"/>
+            <path d="M28 18V34"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // iCUE API binding — bare assignment is intentional.
+    icueEvents = {
+      'onDataUpdated': onIcueDataUpdated,
+      'onICUEInitialized': onIcueInitialized
+    };
+
+    let languageCode = 'en';
+
+    // --- iCUE property helper ---
+    function getIcueProperty(name) {
+      if (typeof window !== 'undefined' && Object.prototype.hasOwnProperty.call(window, name)) {
+        const value = window[name];
+        if (value !== undefined && value !== null && value !== '') return value;
+      }
+      try {
+        const value = Function('return typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined')();
+        if (value !== undefined && value !== null && value !== '') return value;
+      } catch (e) {}
+      return undefined;
+    }
+
+    function clampRange(v, min, max, d) {
+      v = Number(v);
+      if (!Number.isFinite(v)) return d;
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function getBackgroundMediaSetting() {
+      return getIcueProperty('backgroundMedia');
+    }
+
+    // --- Media background helpers ---
+    function resolveMediaPath(value) {
+      if (!value) return '';
+      if (typeof value === 'string') return value;
+      if (value.pathToAsset) return value.pathToAsset;
+      if (value.path) return value.path;
+      if (value.value) return value.value;
+      return '';
+    }
+
+    function normalizeMediaConfig(rawMedia) {
+      var mediaPath = resolveMediaPath(rawMedia);
+      if (!mediaPath) return null;
+      var base = (rawMedia && typeof rawMedia === 'object') ? rawMedia : {};
+      return {
+        path:        base.pathToAsset || mediaPath,
+        baseWidth:   Number(base.baseWidth)  || Number(base.baseSizeX) || 0,
+        baseHeight:  Number(base.baseHeight) || Number(base.baseSizeY) || 0,
+        scale:       Number.isFinite(Number(base.scale)) ? Number(base.scale) : 1,
+        positionX:   Number(base.positionX) || 0,
+        positionY:   Number(base.positionY) || 0,
+        angle:       Number(base.angle)     || 0
+      };
+    }
+
+    // --- MediaViewer wrapper ---
+    const mediaMount = document.getElementById('media-background');
+
+    function createMediaBackgroundComponent(container) {
+      if (!container) {
+        return { clear: function() {}, loadMedia: function() {} };
+      }
+
+      if (typeof MediaViewer === 'function') {
+        var viewer = new MediaViewer({
+          container: container,
+          onMediaLoaded: function() {},
+          onMediaError: function(error) { console.error('Media background error:', error); }
+        });
+        return {
+          clear: function() { viewer.clear(); },
+          loadMedia: function(config) { viewer.loadMedia(config); }
+        };
+      }
+
+      // Static fallback for browser testing (no transform support)
+      // Static fallback for browser testing (no transform support)
+      return {
+        clear: function() {
+          container.style.backgroundImage = '';
+        },
+        loadMedia: function(config) {
+          var p = (config && config.path) ? config.path : resolveMediaPath(config);
+          if (!p) { container.style.backgroundImage = ''; return; }
+          container.style.backgroundImage = "url('" + String(p).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "')";
+          container.style.backgroundRepeat = 'no-repeat';
+          container.style.backgroundSize = 'cover';
+          container.style.backgroundPosition = 'center';
+        }
+      };
+    }
+
+    const mediaBackgroundComponent = createMediaBackgroundComponent(mediaMount);
+
+    function syncBackgroundMedia() {
+      const mediaConfig = normalizeMediaConfig(getBackgroundMediaSetting());
+      if (!mediaConfig) {
+        mediaBackgroundComponent.clear();
+      } else {
+        mediaBackgroundComponent.loadMedia(mediaConfig);
+      }
+    }
+
+    window.addEventListener('resize', syncBackgroundMedia);
+
+    // --- State ---
+    const canvas = document.getElementById('drawCanvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+    let currentColorIndex = 0;
+    let currentBrushSize = 4;
+    let isEraser = false;
+    let toolbarVisible = true;
+    let toolbarTimeout = null;
+    let colors = ['#785aff', '#b9ed2d', '#e6027d', '#1ecfdf', '#fac800', '#ffffff', '#000000'];
+    let saveTimeout = null;
+    let canvasReady = false;
+
+    // --- Undo/Redo history ---
+    const MAX_HISTORY = 30;
+    const MAX_PERSISTED_HISTORY = 3;
+    let undoStack = [];
+    let redoStack = [];
+
+    function normalizeHistoryStack(value) {
+      if (!Array.isArray(value)) return [];
+      return value.filter(function(entry) {
+        return typeof entry === 'string' && entry.startsWith('data:image/');
+      }).slice(-MAX_HISTORY);
+    }
+
+    function normalizeToolState(toolState) {
+      var t = (toolState && typeof toolState === 'object') ? toolState : {};
+      var colorIndex = Number.isFinite(Number(t.currentColorIndex)) ? Number(t.currentColorIndex) : 0;
+      colorIndex = Math.max(0, Math.min(colors.length - 1, colorIndex));
+      var brushSize = Number.isFinite(Number(t.currentBrushSize)) ? Number(t.currentBrushSize) : 4;
+      var allowed = [4, 10, 20];
+      if (allowed.indexOf(brushSize) === -1) brushSize = 4;
+      return {
+        currentColorIndex: colorIndex,
+        currentBrushSize: brushSize,
+        isEraser: Boolean(t.isEraser),
+        toolbarVisible: t.toolbarVisible !== false
+      };
+    }
+
+    function applyToolSelectionUI() {
+      document.getElementById('eraserBtn').classList.toggle('selected', isEraser);
+
+      document.querySelectorAll('.color-btn').forEach(function(btn, i) {
+        btn.classList.toggle('selected', !isEraser && i === currentColorIndex);
+      });
+
+      document.querySelectorAll('.brush-btn').forEach(function(btn) {
+        var size = parseInt(btn.getAttribute('data-size'), 10);
+        btn.classList.toggle('selected', !isEraser && size === currentBrushSize);
+      });
+
+      if (toolbarVisible) showToolbar();
+      else hideToolbar();
+    }
+
+    function saveToHistory() {
+      if (!canvasReady || canvas.width === 0 || canvas.height === 0) return;
+      try {
+        undoStack.push(canvas.toDataURL('image/png'));
+        if (undoStack.length > MAX_HISTORY) undoStack.shift();
+        redoStack = [];
+        updateUndoRedoButtons();
+        scheduleSave();
+      } catch(e) {}
+    }
+
+    function undo() {
+      if (undoStack.length === 0) return;
+      try {
+        redoStack.push(canvas.toDataURL('image/png'));
+      } catch(e) {}
+      const prev = undoStack.pop();
+      const img = new Image();
+      img.onload = function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        scheduleSave();
+        updateUndoRedoButtons();
+      };
+      img.src = prev;
+    }
+
+    function redo() {
+      if (redoStack.length === 0) return;
+      try {
+        undoStack.push(canvas.toDataURL('image/png'));
+      } catch(e) {}
+      const next = redoStack.pop();
+      const img = new Image();
+      img.onload = function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        scheduleSave();
+        updateUndoRedoButtons();
+      };
+      img.src = next;
+    }
+
+    function updateUndoRedoButtons() {
+      document.getElementById('undoBtn').disabled = undoStack.length === 0;
+      document.getElementById('redoBtn').disabled = redoStack.length === 0;
+    }
+
+    // --- Canvas setup ---
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+
+      // Save current drawing
+      let imageData = null;
+      if (canvasReady && canvas.width > 0 && canvas.height > 0) {
+        try { imageData = canvas.toDataURL('image/png'); } catch(e) {}
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+
+      // Always keep canvas pixels transparent; .main-glass provides bg color
+      ctx.clearRect(0, 0, w, h);
+
+      // Restore drawing
+      if (imageData) {
+        const img = new Image();
+        img.onload = function() {
+          ctx.drawImage(img, 0, 0, w, h);
+          canvasReady = true;
+        };
+        img.src = imageData;
+      } else {
+        loadFromStorage();
+        canvasReady = true;
+      }
+    }
+
+    // --- Drawing ---
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches ? e.touches[0] : e;
+      return {
+        x: (touch.clientX - rect.left) * (canvas.width / rect.width),
+        y: (touch.clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function startDraw(e) {
+      if (e.target.closest('.toolbar')) return;
+      saveToHistory();
+      isDrawing = true;
+      const pos = getPos(e);
+      lastX = pos.x;
+      lastY = pos.y;
+
+      // Hide toolbar immediately; keep handle hidden while finger is down
+      hideToolbar(false);
+
+      // Draw a dot for single taps
+      if (isEraser) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, currentBrushSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, currentBrushSize / 2, 0, Math.PI * 2);
+        ctx.fillStyle = colors[currentColorIndex];
+        ctx.fill();
+      }
+
+      e.preventDefault();
+    }
+
+    function draw(e) {
+      if (!isDrawing) return;
+      const pos = getPos(e);
+
+      if (isEraser) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = currentBrushSize;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.strokeStyle = colors[currentColorIndex];
+        ctx.lineWidth = currentBrushSize;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+      }
+
+      lastX = pos.x;
+      lastY = pos.y;
+      e.preventDefault();
+    }
+
+    function stopDraw() {
+      if (isDrawing) {
+        isDrawing = false;
+        flushPendingSave();
+        // Reveal handle only once the finger lifts, so it never blocks a stroke
+        if (!toolbarVisible) {
+          document.getElementById('toolbarHandle').classList.remove('hidden');
+        }
+      }
+    }
+
+    // --- Persistence ---
+    // Widget Builder pattern:
+    // - use uniqueId as the localStorage key
+    // - store/retrieve a JSON object under that key
+    const widgetId = uniqueId;
+
+    function readStoredState(options) {
+      const opts = options || {};
+      const requireCanvasData = opts.requireCanvasData !== false;
+      try {
+        const raw = localStorage.getItem(widgetId);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (!requireCanvasData || parsed.canvasData) return parsed;
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function writeStoredState(data) {
+      function tryWrite(payloadObj) {
+        const payload = JSON.stringify(payloadObj);
+        let wroteAny = false;
+        try {
+          localStorage.setItem(widgetId, payload);
+          wroteAny = true;
+        } catch (e) {}
+        return wroteAny;
+      }
+
+      // Primary attempt: save full state with compact history.
+      if (tryWrite(data)) return true;
+
+      // Quota fallback: keep doodle + tool choices (drop history).
+      return tryWrite({
+        canvasData: data.canvasData,
+        canvasWidth: data.canvasWidth,
+        canvasHeight: data.canvasHeight,
+        toolState: data.toolState
+      });
+    }
+
+    function scheduleSave() {
+      if (saveTimeout) clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveToStorage, 220);
+    }
+
+    function flushPendingSave() {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+        saveTimeout = null;
+      }
+      saveToStorage();
+    }
+
+    function saveToStorage() {
+      if (!canvasReady || canvas.width === 0 || canvas.height === 0) return;
+      try {
+        const data = readStoredState({ requireCanvasData: false }) || {};
+        data.canvasData = canvas.toDataURL('image/png');
+        data.canvasWidth = canvas.width;
+        data.canvasHeight = canvas.height;
+        data.undoStack = undoStack.slice(-MAX_PERSISTED_HISTORY);
+        data.redoStack = redoStack.slice(-MAX_PERSISTED_HISTORY);
+        data.toolState = {
+          currentColorIndex: currentColorIndex,
+          currentBrushSize: currentBrushSize,
+          isEraser: isEraser,
+          toolbarVisible: toolbarVisible
+        };
+        writeStoredState(data);
+      } catch(e) {
+        console.error('Failed to save doodle:', e);
+      }
+      saveTimeout = null;
+    }
+
+    function loadFromStorage() {
+      try {
+        const data = readStoredState({ requireCanvasData: true });
+        if (!data) return;
+
+        undoStack = normalizeHistoryStack(data.undoStack);
+        redoStack = normalizeHistoryStack(data.redoStack);
+        updateUndoRedoButtons();
+
+        var restored = normalizeToolState(data.toolState);
+        currentColorIndex = restored.currentColorIndex;
+        currentBrushSize = restored.currentBrushSize;
+        isEraser = restored.isEraser;
+        toolbarVisible = restored.toolbarVisible;
+        applyToolSelectionUI();
+
+        if (!data.canvasData) return;
+        const img = new Image();
+        img.onload = function() {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        };
+        img.src = data.canvasData;
+      } catch(e) {
+        console.error('Failed to load doodle:', e);
+      }
+    }
+
+    function clearCanvas() {
+      saveToHistory();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      scheduleSave();
+    }
+
+    // --- Toolbar ---
+    function showToolbar() {
+      if (toolbarTimeout) clearTimeout(toolbarTimeout);
+      document.getElementById('toolbar').classList.add('visible');
+      document.getElementById('toolbarHandle').classList.add('hidden');
+      toolbarVisible = true;
+    }
+
+    function hideToolbar(showHandle = true) {
+      document.getElementById('toolbar').classList.remove('visible');
+      if (showHandle) document.getElementById('toolbarHandle').classList.remove('hidden');
+      toolbarVisible = false;
+    }
+
+    // --- Color buttons ---
+    function selectColor(index) {
+      currentColorIndex = index;
+      isEraser = false;
+      document.getElementById('eraserBtn').classList.remove('selected');
+      document.querySelectorAll('.color-btn').forEach(function(btn, i) {
+        btn.classList.toggle('selected', i === index);
+      });
+      document.querySelectorAll('.brush-btn').forEach(function(btn) {
+        btn.classList.toggle('selected', parseInt(btn.getAttribute('data-size'), 10) === currentBrushSize);
+      });
+      scheduleSave();
+    }
+
+    function updateColorSwatches() {
+      document.querySelectorAll('.color-btn').forEach(function(btn) {
+        const idx = parseInt(btn.getAttribute('data-color-index'));
+        const swatch = btn.querySelector('.color-swatch');
+        if (swatch && colors[idx]) {
+          swatch.style.backgroundColor = colors[idx];
+          swatch.style.border = (colors[idx].toLowerCase() === '#000000' || colors[idx].toLowerCase() === '#000')
+            ? '2px solid rgba(255,255,255,0.3)' : 'none';
+        }
+      });
+    }
+
+    // --- Brush size ---
+    function selectBrush(size) {
+      currentBrushSize = size;
+      isEraser = false;
+      document.getElementById('eraserBtn').classList.remove('selected');
+      document.querySelectorAll('.brush-btn').forEach(function(btn) {
+        btn.classList.toggle('selected', parseInt(btn.getAttribute('data-size')) === size);
+      });
+      document.querySelectorAll('.color-btn').forEach(function(btn, i) {
+        btn.classList.toggle('selected', i === currentColorIndex);
+      });
+      scheduleSave();
+    }
+
+    // --- Eraser ---
+    function selectEraser() {
+      isEraser = true;
+      document.getElementById('eraserBtn').classList.add('selected');
+      document.querySelectorAll('.color-btn').forEach(function(btn) {
+        btn.classList.remove('selected');
+      });
+      document.querySelectorAll('.brush-btn').forEach(function(btn) {
+        btn.classList.remove('selected');
+      });
+      scheduleSave();
+    }
+
+    // --- Event listeners ---
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDraw);
+    canvas.addEventListener('touchcancel', stopDraw);
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDraw);
+    canvas.addEventListener('mouseleave', stopDraw);
+
+    document.querySelectorAll('.color-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectColor(parseInt(this.getAttribute('data-color-index')));
+        showToolbar();
+      });
+      btn.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: false });
+    });
+
+    document.querySelectorAll('.brush-btn').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        selectBrush(parseInt(this.getAttribute('data-size')));
+        showToolbar();
+      });
+      btn.addEventListener('touchstart', function(e) { e.stopPropagation(); }, { passive: false });
+    });
+
+    document.getElementById('eraserBtn').addEventListener('click', function(e) {
+      e.stopPropagation(); selectEraser(); showToolbar();
+    });
+    document.getElementById('eraserBtn').addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
+
+    document.getElementById('undoBtn').addEventListener('click', function(e) {
+      e.stopPropagation(); undo(); showToolbar();
+    });
+    document.getElementById('undoBtn').addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
+
+    document.getElementById('redoBtn').addEventListener('click', function(e) {
+      e.stopPropagation(); redo(); showToolbar();
+    });
+    document.getElementById('redoBtn').addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
+
+    document.getElementById('clearBtn').addEventListener('click', function(e) {
+      e.stopPropagation(); clearCanvas(); showToolbar();
+    });
+    document.getElementById('clearBtn').addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
+
+    document.getElementById('toolbarHandle').addEventListener('click', function(e) {
+      e.stopPropagation();
+      showToolbar();
+    });
+    document.getElementById('toolbarHandle').addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
+
+    document.getElementById('minimizeBtn').addEventListener('click', function(e) {
+      e.stopPropagation();
+      hideToolbar();
+    });
+    document.getElementById('minimizeBtn').addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
+
+    document.getElementById('toolbar').addEventListener('touchstart', function(e) {
+      e.stopPropagation();
+    }, { passive: false });
+
+    // --- iCUE integration ---
+    function applyStyles() {
+      const root = document.documentElement;
+
+      // Background opacity (transparency slider: 100 = fully opaque, 0 = fully transparent)
+      const bgOpacity = clampRange(
+        typeof transparency !== 'undefined' ? transparency : 100,
+        0, 100, 100
+      ) / 100;
+      root.style.setProperty('--bg-opacity', bgOpacity);
+
+      // Background color
+      root.style.setProperty('--bg-color', getIcueProperty('backgroundColor') || '#4b4b4b');
+
+      // Glass blur
+      const blur = clampRange(typeof glassBlur !== 'undefined' ? glassBlur : 0, 0, 20, 0);
+      root.style.setProperty('--bg-blur', blur + 'px');
+
+      // Update palette colors from iCUE properties
+      const c1 = getIcueProperty('color1');
+      const c2 = getIcueProperty('color2');
+      const c3 = getIcueProperty('color3');
+      const c4 = getIcueProperty('color4');
+      const c5 = getIcueProperty('color5');
+      if (c1) colors[0] = c1;
+      if (c2) colors[1] = c2;
+      if (c3) colors[2] = c3;
+      if (c4) colors[3] = c4;
+      if (c5) colors[4] = c5;
+
+      updateColorSwatches();
+
+      // Background image
+      syncBackgroundMedia();
+    }
+
+    function onIcueDataUpdated() {
+      applyStyles();
+    }
+
+    function onIcueInitialized() {
+      if (typeof iCUE !== 'undefined' && iCUE.iCUELanguage) {
+        languageCode = iCUE.iCUELanguage;
+      }
+
+      // Re-load after iCUE initialization so uniqueId-backed storage is available.
+      loadFromStorage();
+      onIcueDataUpdated();
+    }
+
+    // --- Hide panel on focus loss ---
+    window.addEventListener('blur', hideToolbar);
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        hideToolbar();
+        flushPendingSave();
+      }
+    });
+    window.addEventListener('pagehide', flushPendingSave);
+    window.addEventListener('beforeunload', flushPendingSave);
+
+    // --- Init ---
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    updateColorSwatches();
+    showToolbar();
+
+    if (typeof iCUE_initialized !== 'undefined' && iCUE_initialized) {
+      onIcueInitialized();
+    } else {
+      onIcueDataUpdated();
+    }
+  </script>
+</body>
+</html>

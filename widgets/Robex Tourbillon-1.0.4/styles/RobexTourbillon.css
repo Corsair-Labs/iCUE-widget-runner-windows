@@ -1,0 +1,286 @@
+:root {
+  --text-color: #ffffff;
+  --accent-color: #d4af37;
+  --bg-color: #0a0a0a;
+  --bg-opacity: 1;
+  --bg-blur: 0px;
+  --second-hand-color: #cc0000;
+
+  --base-font: calc(min(100vw, 100vh) / 12);
+  --secondary-font: calc(var(--base-font) * 0.6);
+  --label-font: calc(var(--base-font) * 0.45);
+}
+
+html { overflow: hidden; }
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: transparent;
+}
+
+.widget-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  color: var(--text-color);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* --- Background stack --- */
+.widget-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+  opacity: var(--bg-opacity);
+  transition: opacity 0.2s ease;
+}
+
+.main-glass {
+  position: absolute;
+  inset: 0;
+  background-color: var(--bg-color);
+  z-index: 0;
+}
+
+#media-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  filter: blur(var(--bg-blur, 0px));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1;
+}
+
+#media-background.has-media {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* --- Main content --- */
+.main-content {
+  position: relative;
+  z-index: 2;
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ambient glow behind the watch — uses accent color for a warm halo */
+.main-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 65% 65% at center,
+    color-mix(in srgb, var(--accent-color) 7%, transparent) 0%,
+    transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --- Watch shadow (static sibling — decoupled from animated SVG so the GPU never
+       has to re-apply a pixel-level filter on every hand movement) --- */
+.watch-shadow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 50%;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 1),
+    0 6px 20px rgba(0, 0, 0, 0.75),
+    0 20px 56px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* --- Watch container --- */
+.watch-container {
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.watch-container svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- SVG paint classes driven by CSS custom properties --- */
+
+/* Case / bezel / brushed steel elements */
+.watch-case-outer { fill: url(#silverGrad); }
+.watch-case-ring { fill: #111111; stroke: #555; stroke-width: 1; }
+.watch-dial { fill: url(#dialGrad); }
+
+/* Tick marks */
+.tick-hour { stroke: var(--text-color); opacity: 0.85; }
+.tick-minute { stroke: var(--text-color); opacity: 0.35; }
+
+/* Hands */
+.hand-hour, .hand-minute { fill: url(#silverGrad); stroke: #111; stroke-width: 1; }
+.hand-hour-lume { fill: var(--text-color); }
+.hand-minute-lume { fill: var(--text-color); }
+.hand-second line { stroke: var(--second-hand-color); }
+.hand-second circle { fill: var(--second-hand-color); }
+.hand-center-cap { fill: var(--text-color); opacity: 0.8; }
+
+/* Crown / branding */
+.crown-shape { fill: var(--accent-color); }
+.brand-text {
+  fill: var(--accent-color);
+  font-family: 'Garamond', 'Times New Roman', serif;
+  font-weight: normal;
+  font-size: 24px;
+  text-anchor: middle;
+  letter-spacing: 5px;
+}
+.sub-text {
+  fill: var(--text-color);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 8px;
+  text-anchor: middle;
+  letter-spacing: 0.5px;
+  opacity: 0.5;
+  text-transform: uppercase;
+}
+
+/* Month subdial */
+.month-ring { fill: none; stroke: url(#silverGrad); stroke-width: 1.5; }
+.month-ticks { stroke: var(--text-color); stroke-width: 1; opacity: 0.4; }
+.month-label {
+  fill: var(--text-color);
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-weight: bold;
+  text-anchor: middle;
+  font-size: 7px;
+  letter-spacing: 1px;
+  opacity: 0.5;
+  text-transform: uppercase;
+}
+.month-hand line { stroke: var(--text-color); stroke-width: 2; opacity: 0.8; }
+.month-hand circle { fill: var(--text-color); opacity: 0.8; }
+
+/* Date roller */
+.date-roller-bg { fill: url(#rollerGrad); stroke: url(#silverGrad); stroke-width: 2; }
+.date-roller-text {
+  fill: var(--text-color);
+  text-anchor: middle;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-weight: bold;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+}
+.date-roller-highlight { fill: #ffffff; opacity: 0.1; }
+
+/* Tourbillon */
+.tourbillon-well {
+  fill: #0a0a0a;
+  stroke: #444;
+  stroke-width: 2;
+}
+.tourbillon-cage {
+  will-change: transform;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.tourbillon-crosshair { stroke: #555; stroke-width: 1; }
+.tourbillon-ring-outer { fill: none; stroke: url(#silverGrad); stroke-width: 2; stroke-dasharray: 2 3; }
+.tourbillon-hub { fill: url(#steelBrushedGrad); }
+.tourbillon-balance {
+  will-change: transform;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.tourbillon-balance-ring { fill: none; stroke: var(--text-color); stroke-width: 2; opacity: 0.7; }
+.tourbillon-balance-spoke { stroke: var(--text-color); stroke-width: 2; opacity: 0.7; }
+.tourbillon-hairspring { fill: none; stroke: var(--text-color); stroke-width: 0.5; opacity: 0.3; }
+.tourbillon-jewel-center { fill: var(--second-hand-color); stroke-width: 0; }
+.tourbillon-jewel-outer { fill: #3366cc; }
+.tourbillon-bridge { stroke: url(#steelBrushedGrad); stroke-width: 4; stroke-linecap: round; }
+.tourbillon-bridge-cap { fill: var(--second-hand-color); }
+
+/* Dial reflection overlay */
+.dial-reflection { fill: url(#steelBrushedGrad); opacity: 0.06; pointer-events: none; }
+
+/* --- GPU compositor-layer pivots for JS-driven hand rotation ---
+   transform-box: fill-box  → origin is relative to each element's own bounding box
+   transform-origin %s      → place the pivot at (0,0) in SVG local space = watch/dial centre
+   will-change: transform   → pre-allocates a GPU layer so CSS rotation never triggers a repaint */
+#hour-hand {
+  will-change: transform;
+  transform-box: fill-box;
+  transform-origin: 50% 85.7%;
+}
+#minute-hand {
+  will-change: transform;
+  transform-box: fill-box;
+  transform-origin: 50% 89.7%;
+}
+#second-hand {
+  will-change: transform;
+  transform-box: fill-box;
+  transform-origin: 50% 80%;
+}
+#month-hand-group {
+  will-change: transform;
+  transform-box: fill-box;
+  transform-origin: 50% 90.3%;
+}
+
+/* --- Keyframes --- */
+@keyframes rotate-cage {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes oscillate {
+  0%   { transform: rotate(-36deg); }
+  100% { transform: rotate(36deg); }
+}
+
+/* --- States --- */
+.loading-state,
+.error-state,
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: var(--secondary-font);
+  opacity: 0.7;
+}
+
+/* --- Accessibility: reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

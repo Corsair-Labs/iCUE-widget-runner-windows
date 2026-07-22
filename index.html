@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>iCUE Widget Runner</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#111; color:#eee; }
+    .layout { display:grid; grid-template-columns:360px 1fr; height:100vh; }
+    .sidebar { padding:16px; border-right:1px solid #2a2a2a; background:#161616; overflow:auto; }
+    .main { display:grid; grid-template-rows:auto 1fr; min-width:0; }
+    .toolbar { display:flex; gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid #2a2a2a; background:#181818; -webkit-app-region:drag; user-select:none; }
+    .toolbar .muted { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:58vw; }
+    .sidebar .stack > div:first-child { -webkit-app-region:drag; user-select:none; }
+    .btn, .dropzone, .widget-card, input, #viewer, .control-row, .window-controls, .window-btn { -webkit-app-region:no-drag; }
+    .window-controls { display:flex; gap:4px; align-items:center; }
+    .window-controls[hidden] { display:none !important; }
+    .window-btn { width:32px; height:28px; display:grid; place-items:center; border:0; border-radius:6px; background:transparent; color:#ddd; cursor:pointer; font-size:16px; line-height:1; }
+    .window-btn:hover { background:#2a2a2a; color:#fff; }
+    .window-btn.close:hover { background:#b3261e; }
+    .viewer-wrap { position:relative; min-width:0; min-height:0; }
+    #viewer { width:100%; height:100%; border:0; display:block; background:#0f0f0f; }
+    h1 { font-size:20px; margin:0 0 8px; }
+    .muted { color:#aaa; font-size:12px; }
+    .dropzone { border:2px dashed #3a3a3a; border-radius:12px; padding:12px; margin:12px 0; text-align:center; }
+    .dropzone.dragover { border-color:#d0b050; background:#1d1a10; }
+    .btn { background:#222; color:#eee; border:1px solid #444; border-radius:8px; padding:8px 10px; cursor:pointer; }
+    .stack { display:flex; flex-direction:column; gap:12px; }
+    .widget-list { display:flex; flex-direction:column; gap:8px; }
+    .widget-card { display:grid; grid-template-columns:44px 1fr auto; gap:10px; align-items:center; padding:10px; border:1px solid #2d2d2d; border-radius:10px; background:#1b1b1b; cursor:pointer; }
+    .widget-card.active { border-color:#d0b050; }
+    .widget-icon { width:44px; height:44px; display:flex; align-items:center; justify-content:center; background:#101010; border-radius:8px; overflow:hidden; }
+    .widget-icon img { width:100%; height:100%; object-fit:contain; }
+    .fallback { font-size:10px; color:#999; text-align:center; padding:4px; }
+    .pill { font-size:11px; padding:3px 6px; border:1px solid #444; border-radius:999px; color:#bbb; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .card { background:#1b1b1b; border:1px solid #2d2d2d; border-radius:10px; padding:10px; }
+    .wide { grid-column:1 / -1; }
+    .runtime-controls { display:flex; flex-direction:column; gap:10px; }
+    .runtime-title { font-weight:700; font-size:13px; }
+    .control-row { display:grid; grid-template-columns:96px 1fr 42px; gap:8px; align-items:center; font-size:12px; color:#ddd; }
+    .control-row input[type="range"] { width:100%; accent-color:#d0b050; }
+    .control-value { color:#aaa; text-align:right; font-variant-numeric:tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="stack">
+        <div>
+          <h1>iCUE Widget Runner</h1>
+          <div class="muted">Generic browser host for web-style iCUE widgets</div>
+        </div>
+        <div>
+          <button class="btn" id="rescanBtn">Rescan widgets</button>
+          <input id="folderInput" type="file" webkitdirectory directory multiple style="display:none">
+          <button class="btn" id="pickBtn">Add widget folder</button>
+        </div>
+        <div id="dropzone" class="dropzone">
+          Drag and drop a widget folder here
+        </div>
+        <div class="muted" id="status">Scanning widgets...</div>
+        <div id="widgetList" class="widget-list"></div>
+        <div id="properties" class="grid"></div>
+      </div>
+    </aside>
+    <section class="main">
+      <div class="toolbar">
+        <strong id="widgetTitle">No widget loaded</strong>
+        <div style="flex:1"></div>
+        <div class="muted" id="widgetRuntime">Select a widget</div>
+        <div class="window-controls" id="windowControls" hidden aria-hidden="true">
+          <button class="window-btn" id="minimizeBtn" type="button" title="Minimize" aria-label="Minimize">-</button>
+          <button class="window-btn" id="maximizeBtn" type="button" title="Maximize" aria-label="Maximize">&#9633;</button>
+          <button class="window-btn close" id="closeBtn" type="button" title="Close" aria-label="Close">&times;</button>
+        </div>
+      </div>
+      <div class="viewer-wrap">
+        <iframe id="viewer"></iframe>
+      </div>
+    </section>
+  </div>
+  <script src="app-config.js"></script>
+  <script src="runner-v2.js"></script>
+</body>
+</html>

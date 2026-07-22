@@ -1,0 +1,16 @@
+{
+  "author": "Custom",
+  "id": "com.custom.flapclockcalendar",
+  "name": "Flap Clock Calendar",
+  "description": "A customizable split-flap clock and calendar for Xeneon Edge dashboard LCD widgets.",
+  "version": "1.0.0",
+  "preview_icon": "resources/icon.svg",
+  "min_framework_version": "1.0.0",
+  "os": [
+    { "platform": "windows" }
+  ],
+  "supported_devices": [
+    { "type": "dashboard_lcd", "features": ["sensor-screen"] }
+  ],
+  "interactive": false
+}

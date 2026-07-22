@@ -1,0 +1,23 @@
+{
+  "author": "meloyellowjr",
+  "id": "com.meloyellowjr.vumeter",
+  "name": "VU Stereo Meter",
+  "description": "Analog VU stereo meters in 8 legendary power amplifier styles. Uses real iCUE sensor data for left and right channels. Themes: Onkyo M-508, McIntosh MC312, Accuphase P-4600, Yamaha M-5000, Technics SE-R1, Advance Paris A10, Nikko Alpha 800, Proton D1200.",
+  "version": "1.2.9",
+  "preview_icon": "resources/vumeter.svg",
+  "min_framework_version": "1.0.0",
+  "os": [
+    {
+      "platform": "windows"
+    }
+  ],
+  "supported_devices": [
+    {
+      "type": "dashboard_lcd"
+    }
+  ],
+  "interactive": true,
+  "required_plugins": [
+    "widgetbuilder.sensorsdataprovider:Sensors:1.0"
+  ]
+}

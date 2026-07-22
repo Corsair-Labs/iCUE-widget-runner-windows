@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tr('Flap Clock Calendar')</title>
+  <link rel="icon" type="image/svg+xml" href="resources/icon.svg">
+
+  <meta name="x-icue-restrictions" data-restrictions='[{ "device": "dashboard_lcd" }]'>
+  <meta name="x-icue-widget-group" content="tr('Clock Face')">
+  <meta name="x-icue-widget-preview" content="resources/preview.svg">
+
+  <style>
+    .position-container { position: absolute; transform-origin: top left; }
+    .scale-container { transform-origin: top left; }
+    .rotation-container { transform-origin: center center; }
+    .rotation-container img, .rotation-container video { display: block; object-fit: contain; }
+  </style>
+
+  <script>
+    class MediaViewer {
+      constructor(options = {}) {
+        this.container = options.container;
+        this.onMediaLoaded = options.onMediaLoaded || function() {};
+        this.onMediaError = options.onMediaError || function() {};
+        this.debug = options.debug || false;
+        this.positionContainer = null;
+        this.scaleContainer = null;
+        this.rotationContainer = null;
+        this.mediaElement = null;
+        this.currentMediaPath = null;
+        this.supportedImageFormats = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
+        this.supportedVideoFormats = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
+        if (!this.container) throw new Error('MediaViewer: container is required');
+      }
+
+      getFileExtension(path) {
+        return String(path).split('.').pop().toLowerCase();
+      }
+
+      isImageFile(extension) {
+        return this.supportedImageFormats.indexOf(extension) !== -1;
+      }
+
+      isVideoFile(extension) {
+        return this.supportedVideoFormats.indexOf(extension) !== -1;
+      }
+
+      log() {
+        if (this.debug) console.log.apply(console, ['[MediaViewer]'].concat(Array.prototype.slice.call(arguments)));
+      }
+
+      error() {
+        console.error.apply(console, ['[MediaViewer]'].concat(Array.prototype.slice.call(arguments)));
+      }
+
+      createImageElement(filePath) {
+        const img = document.createElement('img');
+        img.src = filePath;
+        img.onerror = () => {
+          this.error('Failed to load image:', filePath);
+          this.onMediaError(new Error('Failed to load image: ' + filePath));
+        };
+        img.onload = () => {
+          this.log('Image loaded:', filePath);
+          this.onMediaLoaded(img);
+        };
+        return img;
+      }
+
+      createVideoElement(filePath) {
+        const video = document.createElement('video');
+        video.controls = false;
+        video.autoplay = true;
+        video.loop = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.addEventListener('loadeddata', () => {
+          video.play().then(() => {
+            this.onMediaLoaded(video);
+          }).catch(error => {
+            this.error('Error playing video:', error);
+            this.onMediaError(error);
+          });
+        });
+        video.addEventListener('error', () => {
+          const message = video.error && video.error.message ? video.error.message : 'Unknown';
+          this.error('Video error:', message);
+          this.onMediaError(new Error('Video error: ' + message));
+        });
+        video.src = filePath;
+        return video;
+      }
+
+      createMediaElement(filePath) {
+        const extension = this.getFileExtension(filePath);
+        if (this.isImageFile(extension)) return this.createImageElement(filePath);
+        if (this.isVideoFile(extension)) return this.createVideoElement(filePath);
+        this.error('Unsupported format:', extension);
+        this.onMediaError(new Error('Unsupported format: ' + extension));
+        return null;
+      }
+
+      createContainers() {
+        this.positionContainer = document.createElement('div');
+        this.positionContainer.className = 'position-container';
+        this.scaleContainer = document.createElement('div');
+        this.scaleContainer.className = 'scale-container';
+        this.rotationContainer = document.createElement('div');
+        this.rotationContainer.className = 'rotation-container';
+        this.rotationContainer.appendChild(this.mediaElement);
+        this.scaleContainer.appendChild(this.rotationContainer);
+        this.positionContainer.appendChild(this.scaleContainer);
+        return this.positionContainer;
+      }
+
+      applyTransform(params = {}) {
+        if (!this.positionContainer) return;
+        const baseWidth = params.baseWidth || 100;
+        const baseHeight = params.baseHeight || 100;
+        const scaleValue = params.scale !== undefined ? params.scale : 1;
+        const posX = params.positionX || 0;
+        const posY = params.positionY || 0;
+        const rotation = params.angle || 0;
+        const minScale = Math.min(this.container.clientWidth / baseWidth, this.container.clientHeight / baseHeight);
+        this.positionContainer.style.transform = 'translate(' + (posX * minScale) + 'px, ' + (posY * minScale) + 'px)';
+        this.scaleContainer.style.transform = 'scale(' + (scaleValue * minScale) + ')';
+        this.rotationContainer.style.transform = 'rotate(' + rotation + 'deg)';
+      }
+
+      loadMedia(params = {}) {
+        const filePath = params.path;
+        if (!filePath) {
+          this.clear();
+          return;
+        }
+        const decoded = decodeURIComponent(filePath);
+        if (this.currentMediaPath === decoded) {
+          this.applyTransform(params);
+          return;
+        }
+        this.clear();
+        this.mediaElement = this.createMediaElement(decoded);
+        if (!this.mediaElement) return;
+        this.container.appendChild(this.createContainers());
+        this.container.style.visibility = 'visible';
+        this.applyTransform(params);
+        this.currentMediaPath = decoded;
+      }
+
+      clear() {
+        this.container.innerHTML = '';
+        this.container.style.visibility = 'hidden';
+        this.positionContainer = null;
+        this.scaleContainer = null;
+        this.rotationContainer = null;
+        this.mediaElement = null;
+        this.currentMediaPath = null;
+      }
+
+      destroy() {
+        this.clear();
+        this.container = null;
+        this.onMediaLoaded = null;
+        this.onMediaError = null;
+      }
+    }
+  </script>
+
+  <meta name="x-icue-property" content="showSeconds" data-label="tr('Show Seconds')" data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="use24Hour" data-label="tr('24-Hour Time')" data-type="switch" data-default="false">
+  <meta name="x-icue-property" content="invertDisplay" data-label="tr('Black-on-White Display')" data-type="switch" data-default="false">
+  <meta name="x-icue-property" content="dateFormat" data-label="tr('Date Format')" data-type="combobox" data-default="'weekdayMonthDay'" data-values="[{ 'key':'weekdayMonthDay','value':tr('Monday, May 11') },{ 'key':'shortWeekdayMonthDay','value':tr('Mon, May 11') },{ 'key':'monthDayYear','value':tr('May 11, 2026') },{ 'key':'mdySlash','value':tr('05/11/2026') },{ 'key':'dmySlash','value':tr('11/05/2026') },{ 'key':'iso','value':tr('2026-05-11') },{ 'key':'weekdayDayMonth','value':tr('Monday 11 May') }]">
+  <meta name="x-icue-property" content="classicFlap" data-label="tr('Classic Mechanical Style')" data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="fontScale" data-label="tr('Font Scale')" data-type="slider" data-default="100" data-min="70" data-max="150" data-step="1" data-unit-label="'%'">
+  <meta name="x-icue-property" content="fontFamily" data-label="tr('Font Family')" data-type="combobox" data-default="'opensans'" data-values="[{ 'key':'opensans','value':tr('Open Sans') },{ 'key':'segoe','value':tr('Segoe UI') },{ 'key':'arial','value':tr('Arial') },{ 'key':'trebuchet','value':tr('Trebuchet MS') },{ 'key':'verdana','value':tr('Verdana') },{ 'key':'georgia','value':tr('Georgia') },{ 'key':'consolas','value':tr('Consolas') },{ 'key':'courier','value':tr('Courier New') }]">
+
+  <meta name="x-icue-property" content="textColor" data-label="tr('Text Color')" data-type="color" data-default="'#ffffff'">
+  <meta name="x-icue-property" content="accentColor" data-label="tr('Accent Color')" data-type="color" data-default="'#d7b56d'">
+  <meta name="x-icue-property" content="backgroundColor" data-label="tr('Background Color')" data-type="color" data-default="'#000000'">
+  <meta name="x-icue-property" content="backgroundImage" data-label="tr('Background Image')" data-type="media-selector" data-filters="['*.png','*.jpg','*.jpeg','*.webp','*.gif']">
+  <meta name="x-icue-property" content="glassBlur" data-label="tr('Glass Blur')" data-type="switch" data-default="false">
+  <meta name="x-icue-property" content="transparency" data-label="tr('Background Transparency')" data-type="slider" data-default="100" data-min="0" data-max="100" data-step="1" data-unit-label="'%'">
+
+  <script id="x-icue-groups" type="application/json">
+  [
+    {
+      "title": "tr('Clock Settings')",
+      "properties": ["showSeconds", "use24Hour", "invertDisplay", "dateFormat", "classicFlap", "fontScale", "fontFamily"]
+    },
+    {
+      "title": "tr('Widget Personalization')",
+      "properties": ["textColor", "accentColor", "backgroundColor", "backgroundImage", "glassBlur", "transparency"]
+    }
+  ]
+  </script>
+
+  <link rel="stylesheet" type="text/css" href="styles/FlapClockCalendar.css">
+</head>
+<body>
+  <div class="widget-root">
+    <div class="widget-background" aria-hidden="true">
+      <div class="main-glass"></div>
+      <div id="media-background"></div>
+    </div>
+
+    <main class="main-content">
+      <div class="loading-state">Loading...</div>
+      <div class="error-state" style="display:none;">Clock error. Local fallback active.</div>
+      <div class="empty-state" style="display:none;">No date available</div>
+      <section class="content" style="display:none;" aria-label="Local clock and calendar">
+        <div class="date-line" id="dateLine">Monday, May 11</div>
+        <div class="clock-panel">
+          <div class="clock-stack" id="clockStack" aria-label="Local time">
+            <div class="time-group hours-group" aria-hidden="true">
+              <div class="flap-tile" id="hourTens"><span class="tile-value">0</span></div>
+              <div class="flap-tile" id="hourOnes"><span class="tile-value">0</span></div>
+            </div>
+            <div class="separator minutes-separator" aria-hidden="true">:</div>
+            <div class="time-group minutes-group" aria-hidden="true">
+              <div class="flap-tile" id="minuteTens"><span class="tile-value">0</span></div>
+              <div class="flap-tile" id="minuteOnes"><span class="tile-value">0</span></div>
+            </div>
+            <div class="separator seconds-separator" aria-hidden="true">:</div>
+            <div class="time-group seconds-group" aria-hidden="true">
+              <div class="flap-tile" id="secondTens"><span class="tile-value">0</span></div>
+              <div class="flap-tile" id="secondOnes"><span class="tile-value">0</span></div>
+            </div>
+          </div>
+          <div class="meridiem" id="meridiem">AM</div>
+        </div>
+        <div class="status-line" id="statusLine" role="status" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    icueEvents = {
+      onDataUpdated: onIcueDataUpdated,
+      onICUEInitialized: onIcueInitialized
+    };
+
+    const PROPERTY_DEFAULTS = {
+      showSeconds: true,
+      use24Hour: false,
+      invertDisplay: false,
+      dateFormat: 'weekdayMonthDay',
+      classicFlap: true,
+      fontScale: 100,
+      fontFamily: 'opensans',
+      textColor: '#ffffff',
+      accentColor: '#d7b56d',
+      backgroundColor: '#000000',
+      backgroundImage: null,
+      glassBlur: false,
+      transparency: 100
+    };
+
+    const FONT_STACKS = {
+      opensans: 'OpenSans, Arial, sans-serif',
+      segoe: '"Segoe UI", Arial, sans-serif',
+      arial: 'Arial, sans-serif',
+      trebuchet: '"Trebuchet MS", Arial, sans-serif',
+      verdana: 'Verdana, Arial, sans-serif',
+      georgia: 'Georgia, "Times New Roman", serif',
+      consolas: 'Consolas, "Courier New", monospace',
+      courier: '"Courier New", monospace'
+    };
+
+    let clockTimer = null;
+    let lastTileValues = {};
+    let resizeObserver = null;
+    let mediaLoadFailed = false;
+
+    function getIcueProperty(name) {
+      if (typeof window !== 'undefined' && Object.prototype.hasOwnProperty.call(window, name)) {
+        const value = window[name];
+        if (value !== undefined && value !== null && value !== '') return value;
+      }
+      try {
+        const value = Function('return typeof ' + name + ' !== "undefined" ? ' + name + ' : undefined')();
+        if (value !== undefined && value !== null && value !== '') return value;
+      } catch (error) {}
+      return undefined;
+    }
+
+    function getWidgetProperty(name) {
+      const value = getIcueProperty(name);
+      return value !== undefined ? value : PROPERTY_DEFAULTS[name];
+    }
+
+    function toBoolean(value, fallback) {
+      if (typeof value === 'boolean') return value;
+      if (typeof value === 'string') {
+        const normalized = value.toLowerCase();
+        if (normalized === 'true') return true;
+        if (normalized === 'false') return false;
+      }
+      return fallback;
+    }
+
+    function clampRange(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, numeric));
+    }
+
+    function clampPx(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function padTwo(value) {
+      return String(value).padStart(2, '0');
+    }
+
+    function safeColor(value, fallback) {
+      return typeof value === 'string' && value ? value : fallback;
+    }
+
+    function resolveMediaPath(value) {
+      if (!value) return '';
+      if (typeof value === 'string') return value;
+      if (value.pathToAsset) return value.pathToAsset;
+      if (value.path) return value.path;
+      if (value.value) return value.value;
+      return '';
+    }
+
+    function normalizeMediaConfig(rawMedia) {
+      const mediaPath = resolveMediaPath(rawMedia);
+      if (!mediaPath) return null;
+      const base = rawMedia && typeof rawMedia === 'object' ? rawMedia : {};
+      return {
+        path: base.pathToAsset || mediaPath,
+        baseWidth: Number(base.baseWidth) || 0,
+        baseHeight: Number(base.baseHeight) || 0,
+        scale: Number.isFinite(Number(base.scale)) ? Number(base.scale) : 1,
+        positionX: Number(base.positionX) || 0,
+        positionY: Number(base.positionY) || 0,
+        angle: Number(base.angle) || 0
+      };
+    }
+
+    function createMediaBackgroundComponent(container) {
+      if (!container) {
+        return {
+          clear: function() {},
+          loadMedia: function() {}
+        };
+      }
+
+      if (typeof MediaViewer === 'function') {
+        const viewer = new MediaViewer({
+          container: container,
+          onMediaLoaded: function() {
+            mediaLoadFailed = false;
+            updateStatus('');
+          },
+          onMediaError: function(error) {
+            mediaLoadFailed = true;
+            console.error('Media background error:', error);
+            updateStatus('Background image unavailable. Solid color fallback active.');
+          }
+        });
+        return {
+          clear: function() {
+            viewer.clear();
+          },
+          loadMedia: function(config) {
+            viewer.loadMedia(config);
+          }
+        };
+      }
+
+      return {
+        clear: function() {
+          container.style.backgroundImage = '';
+          container.style.visibility = 'hidden';
+        },
+        loadMedia: function(config) {
+          const path = config && config.path ? config.path : resolveMediaPath(config);
+          if (!path) {
+            container.style.backgroundImage = '';
+            container.style.visibility = 'hidden';
+            return;
+          }
+          const escaped = String(path).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          container.style.backgroundImage = "url('" + escaped + "')";
+          container.style.backgroundRepeat = 'no-repeat';
+          container.style.backgroundSize = 'cover';
+          container.style.backgroundPosition = 'center';
+          container.style.visibility = 'visible';
+        }
+      };
+    }
+
+    const mediaBackgroundComponent = createMediaBackgroundComponent(document.getElementById('media-background'));
+
+    function getLayoutInfo(width, height) {
+      const longSide = Math.max(width, height);
+      const shortSide = Math.min(width, height);
+      const orient = width <= 710 ? 'v' : 'h';
+      let size = 's';
+      if (longSide >= 2200) size = 'xl';
+      else if (longSide >= 1400) size = 'l';
+      else if (shortSide > 420) size = 'm';
+      return { size: size, orient: orient, longSide: longSide, shortSide: shortSide };
+    }
+
+    function updateLayoutClasses(layout) {
+      const body = document.body;
+      ['size-s', 'size-m', 'size-l', 'size-xl', 'orient-h', 'orient-v', 'vertical-expanded'].forEach(function(className) {
+        body.classList.remove(className);
+      });
+      body.classList.add('size-' + layout.size);
+      body.classList.add('orient-' + layout.orient);
+      if (layout.orient === 'v' && (layout.size === 'l' || layout.size === 'xl')) {
+        body.classList.add('vertical-expanded');
+      }
+    }
+
+    function computeResponsiveTokens(width, height, fontScalePct, showSeconds) {
+      const layout = getLayoutInfo(width, height);
+      const shortEdge = Math.min(width, height);
+      const areaEdge = Math.sqrt(width * height);
+      const layoutBase = shortEdge * 0.7 + areaEdge * 0.3;
+      const userScale = clampRange(fontScalePct, 70, 150, 100) / 100;
+      const verticalExpanded = layout.orient === 'v' && (layout.size === 'l' || layout.size === 'xl');
+      const estimatedPad = clampPx(layoutBase * (layout.orient === 'h' ? 0.026 : 0.042), 8, verticalExpanded ? 86 : 48);
+      const horizontalUnits = showSeconds
+        ? (layout.orient === 'v' ? 5.45 : 5.4)
+        : (layout.orient === 'v' ? 3.7 : 3.65);
+      const contentW = Math.max(120, width - (estimatedPad * 2)) * (layout.orient === 'h' ? 0.96 : 0.94);
+      const contentH = height * (layout.orient === 'h' ? 0.52 : 0.5);
+      let tileHeight;
+
+      if (verticalExpanded) {
+        const groupCount = showSeconds ? 3 : 2;
+        tileHeight = Math.min(width * 0.62, height / (groupCount + 2.8));
+      } else {
+        tileHeight = Math.min(contentH, contentW / horizontalUnits);
+      }
+
+      if (layout.size === 's' && layout.orient === 'h') {
+        tileHeight = Math.min(tileHeight, height * 0.42);
+      }
+
+      const tileMax = verticalExpanded ? 430 : ((layout.orient === 'h' && (layout.size === 'l' || layout.size === 'xl')) ? 380 : 260);
+      tileHeight = clampPx(tileHeight, 54, tileMax);
+      const tileWidth = clampPx(tileHeight * 0.62, 34, 280);
+      const digitSize = clampPx(tileHeight * 0.66 * userScale, 28, tileHeight * 0.76);
+
+      return {
+        layout: layout,
+        layoutBase: layoutBase,
+        userScale: userScale,
+        fsPrimary: clampPx(layoutBase * 0.11 * userScale, 18, 180),
+        fsSecondary: clampPx(layoutBase * 0.05 * userScale, 12, 72),
+        fsLabel: clampPx(layoutBase * 0.038 * userScale, 11, 48),
+        spacePad: estimatedPad,
+        spaceGap: clampPx(layoutBase * 0.02, 6, verticalExpanded ? 60 : 36),
+        tileHeight: tileHeight,
+        tileWidth: tileWidth,
+        digitSize: digitSize,
+        dateSize: clampPx(layoutBase * 0.052 * userScale, 14, verticalExpanded ? 78 : 56),
+        meridiemSize: clampPx(tileHeight * 0.18 * userScale, 12, 58),
+        statusSize: clampPx(layoutBase * 0.026 * userScale, 10, 34),
+        tileGap: clampPx(tileHeight * 0.06, 4, 18),
+        clockGap: clampPx(tileHeight * 0.11, 8, 36),
+        separatorSize: clampPx(tileHeight * 0.55 * userScale, 24, 150),
+        tileRadius: clampPx(tileHeight * 0.055, 4, 18)
+      };
+    }
+
+    function applyResponsiveTokens() {
+      const mount = document.querySelector('.widget-root');
+      if (!mount) return;
+
+      const rect = mount.getBoundingClientRect();
+      const width = rect.width || window.innerWidth || 840;
+      const height = rect.height || window.innerHeight || 344;
+      const showSeconds = toBoolean(getWidgetProperty('showSeconds'), true);
+      const tokens = computeResponsiveTokens(width, height, getWidgetProperty('fontScale'), showSeconds);
+      const root = document.documentElement;
+
+      updateLayoutClasses(tokens.layout);
+      root.style.setProperty('--layout-base', tokens.layoutBase + 'px');
+      root.style.setProperty('--font-scale', String(tokens.userScale));
+      root.style.setProperty('--fs-primary', tokens.fsPrimary + 'px');
+      root.style.setProperty('--fs-secondary', tokens.fsSecondary + 'px');
+      root.style.setProperty('--fs-label', tokens.fsLabel + 'px');
+      root.style.setProperty('--space-pad', tokens.spacePad + 'px');
+      root.style.setProperty('--space-gap', tokens.spaceGap + 'px');
+      root.style.setProperty('--tile-h', tokens.tileHeight + 'px');
+      root.style.setProperty('--tile-w', tokens.tileWidth + 'px');
+      root.style.setProperty('--digit-size', tokens.digitSize + 'px');
+      root.style.setProperty('--date-size', tokens.dateSize + 'px');
+      root.style.setProperty('--meridiem-size', tokens.meridiemSize + 'px');
+      root.style.setProperty('--status-size', tokens.statusSize + 'px');
+      root.style.setProperty('--tile-gap', tokens.tileGap + 'px');
+      root.style.setProperty('--clock-gap', tokens.clockGap + 'px');
+      root.style.setProperty('--separator-size', tokens.separatorSize + 'px');
+      root.style.setProperty('--tile-radius', tokens.tileRadius + 'px');
+    }
+
+    function applyStyles() {
+      const root = document.documentElement;
+      const fontKey = String(getWidgetProperty('fontFamily') || 'opensans');
+      const textColor = safeColor(getWidgetProperty('textColor'), PROPERTY_DEFAULTS.textColor);
+      const backgroundColor = safeColor(getWidgetProperty('backgroundColor'), PROPERTY_DEFAULTS.backgroundColor);
+      const accentColor = safeColor(getWidgetProperty('accentColor'), PROPERTY_DEFAULTS.accentColor);
+      const inverted = toBoolean(getWidgetProperty('invertDisplay'), false);
+      const displayText = inverted ? backgroundColor : textColor;
+      const displayBackground = inverted ? textColor : backgroundColor;
+      const useClassicStyle = toBoolean(getWidgetProperty('classicFlap'), true);
+      const showSeconds = toBoolean(getWidgetProperty('showSeconds'), true);
+      const use24Hour = toBoolean(getWidgetProperty('use24Hour'), false);
+      const transparency = clampRange(getWidgetProperty('transparency'), 0, 100, 100) / 100;
+      const blurEnabled = toBoolean(getWidgetProperty('glassBlur'), false);
+
+      root.style.setProperty('--app-font', FONT_STACKS[fontKey] || FONT_STACKS.opensans);
+      root.style.setProperty('--text-color', textColor);
+      root.style.setProperty('--accent-color', accentColor);
+      root.style.setProperty('--bg-color', displayBackground);
+      root.style.setProperty('--display-text', displayText);
+      root.style.setProperty('--display-bg', displayBackground);
+      root.style.setProperty('--bg-opacity', String(transparency));
+      root.style.setProperty('--bg-blur', blurEnabled ? '12px' : '0px');
+
+      document.body.classList.toggle('mode-classic', useClassicStyle);
+      document.body.classList.toggle('mode-modern', !useClassicStyle);
+      document.body.classList.toggle('seconds-hidden', !showSeconds);
+      document.body.classList.toggle('is24-hour', use24Hour);
+
+      const mediaConfig = normalizeMediaConfig(getWidgetProperty('backgroundImage'));
+      if (!mediaConfig) {
+        mediaLoadFailed = false;
+        mediaBackgroundComponent.clear();
+        updateStatus('');
+      } else {
+        mediaBackgroundComponent.loadMedia(mediaConfig);
+      }
+    }
+
+    function showState(state) {
+      ['loading-state', 'error-state', 'empty-state', 'content'].forEach(function(className) {
+        const element = document.querySelector('.' + className);
+        if (element) element.style.display = className === state ? '' : 'none';
+      });
+    }
+
+    function updateStatus(message) {
+      const status = document.getElementById('statusLine');
+      if (!status) return;
+      status.textContent = message || '';
+      status.classList.toggle('visible', !!message);
+    }
+
+    function setTile(id, value) {
+      const tile = document.getElementById(id);
+      if (!tile) return;
+      const textNode = tile.querySelector('.tile-value');
+      const nextValue = String(value);
+      if (!textNode) return;
+      if (lastTileValues[id] !== nextValue) {
+        textNode.textContent = nextValue;
+        tile.classList.remove('changed');
+        void tile.offsetWidth;
+        tile.classList.add('changed');
+        window.setTimeout(function() {
+          tile.classList.remove('changed');
+        }, 240);
+        lastTileValues[id] = nextValue;
+      }
+    }
+
+    function formatDateValue(date) {
+      const format = String(getWidgetProperty('dateFormat') || 'weekdayMonthDay');
+      try {
+        if (format === 'weekdayMonthDay') {
+          return new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' }).format(date);
+        }
+        if (format === 'shortWeekdayMonthDay') {
+          return new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric' }).format(date);
+        }
+        if (format === 'monthDayYear') {
+          return new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric', year: 'numeric' }).format(date);
+        }
+        if (format === 'weekdayDayMonth') {
+          return new Intl.DateTimeFormat(undefined, { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+        }
+      } catch (error) {
+        updateStatus('Clock error. Local fallback active.');
+      }
+
+      const year = date.getFullYear();
+      const month = padTwo(date.getMonth() + 1);
+      const day = padTwo(date.getDate());
+      if (format === 'dmySlash') return day + '/' + month + '/' + year;
+      if (format === 'iso') return year + '-' + month + '-' + day;
+      return month + '/' + day + '/' + year;
+    }
+
+    function updateClock() {
+      try {
+        const now = new Date();
+        if (Number.isNaN(now.getTime())) {
+          showState('error-state');
+          return;
+        }
+
+        const use24Hour = toBoolean(getWidgetProperty('use24Hour'), false);
+        let hour = now.getHours();
+        const meridiem = hour >= 12 ? 'PM' : 'AM';
+        if (!use24Hour) {
+          hour = hour % 12;
+          if (hour === 0) hour = 12;
+        }
+
+        const hourText = padTwo(hour);
+        const minuteText = padTwo(now.getMinutes());
+        const secondText = padTwo(now.getSeconds());
+
+        setTile('hourTens', hourText.charAt(0));
+        setTile('hourOnes', hourText.charAt(1));
+        setTile('minuteTens', minuteText.charAt(0));
+        setTile('minuteOnes', minuteText.charAt(1));
+        setTile('secondTens', secondText.charAt(0));
+        setTile('secondOnes', secondText.charAt(1));
+
+        const meridiemElement = document.getElementById('meridiem');
+        if (meridiemElement) meridiemElement.textContent = use24Hour ? '' : meridiem;
+
+        const dateLine = document.getElementById('dateLine');
+        if (dateLine) dateLine.textContent = formatDateValue(now);
+
+        const stack = document.getElementById('clockStack');
+        if (stack) {
+          const label = use24Hour
+            ? hourText + ':' + minuteText + (toBoolean(getWidgetProperty('showSeconds'), true) ? ':' + secondText : '')
+            : hourText + ':' + minuteText + (toBoolean(getWidgetProperty('showSeconds'), true) ? ':' + secondText : '') + ' ' + meridiem;
+          stack.setAttribute('aria-label', label);
+        }
+
+        showState('content');
+        if (!mediaLoadFailed) updateStatus('');
+      } catch (error) {
+        console.error('Clock update failed:', error);
+        updateStatus('Clock error. Local fallback active.');
+        showState('content');
+      }
+    }
+
+    function scheduleNextTick() {
+      if (clockTimer) {
+        window.clearTimeout(clockTimer);
+        clockTimer = null;
+      }
+
+      const showSeconds = toBoolean(getWidgetProperty('showSeconds'), true);
+      const now = new Date();
+      const delay = showSeconds
+        ? 1000 - now.getMilliseconds()
+        : ((60 - now.getSeconds()) * 1000) - now.getMilliseconds();
+
+      clockTimer = window.setTimeout(function() {
+        updateClock();
+        scheduleNextTick();
+      }, Math.max(250, delay));
+    }
+
+    function onIcueDataUpdated() {
+      applyResponsiveTokens();
+      applyStyles();
+      updateClock();
+      scheduleNextTick();
+    }
+
+    function onIcueInitialized() {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+      if (typeof ResizeObserver !== 'undefined') {
+        const mount = document.querySelector('.widget-root');
+        if (mount) {
+          resizeObserver = new ResizeObserver(function() {
+            applyResponsiveTokens();
+          });
+          resizeObserver.observe(mount);
+        }
+      }
+      onIcueDataUpdated();
+    }
+
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden && clockTimer) {
+        window.clearTimeout(clockTimer);
+        clockTimer = null;
+      } else if (!document.hidden) {
+        updateClock();
+        scheduleNextTick();
+      }
+    });
+
+    if (typeof iCUE_initialized !== 'undefined' && iCUE_initialized) {
+      onIcueInitialized();
+    } else {
+      onIcueDataUpdated();
+    }
+  </script>
+</body>
+</html>

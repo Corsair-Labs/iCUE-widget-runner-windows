@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tr('Spectrum Analyzer')</title>
+  <link rel="icon" type="image/svg+xml" href="resources/spectrum.svg">
+  <meta name="x-icue-restrictions" data-restrictions='[{"device":"dashboard_lcd"}]'>
+  <meta name="x-icue-widget-group" content="tr('Spectrum Analyzer')">
+  <meta name="x-icue-interactive" content="">
+
+  <!-- ══ MediaViewer inlined (file:// restriction) ══ -->
+  <style>
+    .position-container{position:absolute;transform-origin:top left}
+    .scale-container{transform-origin:top left}
+    .rotation-container{transform-origin:center center}
+    .rotation-container img,.rotation-container video{display:block;object-fit:contain}
+  </style>
+  <script>
+  class MediaViewer{constructor(o={}){this.container=o.container;this.onMediaLoaded=o.onMediaLoaded||(()=>{});this.onMediaError=o.onMediaError||(()=>{});this.debug=o.debug||false;this.positionContainer=null;this.scaleContainer=null;this.rotationContainer=null;this.mediaElement=null;this.currentMediaPath=null;this.supportedImageFormats=["jpg","jpeg","png","gif","bmp","webp","svg","ico"];this.supportedVideoFormats=["mp4","webm","ogg","mov","avi","mkv"];if(!this.container)throw new Error("MediaViewer: container is required")}getFileExtension(p){return p.split(".").pop().toLowerCase()}isImageFile(e){return this.supportedImageFormats.includes(e)}isVideoFile(e){return this.supportedVideoFormats.includes(e)}createImageElement(f){const i=document.createElement("img");i.src=f;i.onerror=()=>{this.onMediaError(new Error("Failed: "+f))};i.onload=()=>{this.onMediaLoaded(i)};return i}createVideoElement(f){const v=document.createElement("video");v.controls=false;v.autoplay=true;v.loop=true;v.muted=true;v.playsInline=true;v.addEventListener("loadeddata",()=>{v.play().then(()=>{this.onMediaLoaded(v)}).catch(e=>{this.onMediaError(e)})});v.addEventListener("error",()=>{this.onMediaError(new Error("Video error"))});v.src=f;return v}createMediaElement(f){const e=this.getFileExtension(f);if(this.isImageFile(e))return this.createImageElement(f);if(this.isVideoFile(e))return this.createVideoElement(f);this.onMediaError(new Error("Unsupported: "+e));return null}createContainers(){this.positionContainer=document.createElement("div");this.positionContainer.className="position-container";this.scaleContainer=document.createElement("div");this.scaleContainer.className="scale-container";this.rotationContainer=document.createElement("div");this.rotationContainer.className="rotation-container";this.rotationContainer.appendChild(this.mediaElement);this.scaleContainer.appendChild(this.rotationContainer);this.positionContainer.appendChild(this.scaleContainer);return this.positionContainer}applyTransform(p={}){if(!this.positionContainer)return;const bw=p.baseWidth||100,bh=p.baseHeight||100,sv=p.scale!==undefined?p.scale:1,px2=p.positionX||0,py2=p.positionY||0,r=p.angle||0,ms=Math.min(this.container.clientWidth/bw,this.container.clientHeight/bh);this.positionContainer.style.transform=`translate(${px2*ms}px,${py2*ms}px)`;this.scaleContainer.style.transform=`scale(${sv*ms})`;this.rotationContainer.style.transform=`rotate(${r}deg)`}loadMedia(p={}){const f=p.path;if(!f){this.clear();return}const d=decodeURIComponent(f);if(this.currentMediaPath===d){this.applyTransform(p);return}this.clear();this.mediaElement=this.createMediaElement(d);if(!this.mediaElement)return;this.container.appendChild(this.createContainers());this.container.style.visibility="visible";this.applyTransform(p);this.currentMediaPath=d}clear(){this.container.innerHTML="";this.container.style.visibility="hidden";this.positionContainer=this.scaleContainer=this.rotationContainer=this.mediaElement=this.currentMediaPath=null}destroy(){this.clear()}}
+  </script>
+
+  <!-- ══ Sensor plugin wrappers inlined ══ -->
+  <script>
+  class IcueWidgetApiWrapper{constructor(p,t=5000){this.plugin=p;this.timeoutMs=t;this.pendingRequests=new Map();this.nextRequestId=0;if(this.plugin&&this.plugin.asyncResponse)this.plugin.asyncResponse.connect(this._handleAsyncResponse.bind(this))}_nextRequestId(){return this.nextRequestId++}_handleAsyncResponse(id,val){const p=this.pendingRequests.get(id);if(p){clearTimeout(p.timeoutId);p.resolve(val);this.pendingRequests.delete(id)}}request(method,...args){return new Promise((resolve,reject)=>{const id=this._nextRequestId();method.call(this.plugin,id,...args);const tid=setTimeout(()=>{if(this.pendingRequests.has(id)){this.pendingRequests.delete(id);reject(new Error("timeout"))}},this.timeoutMs);this.pendingRequests.set(id,{resolve,reject,timeoutId:tid})})}}
+  class SimpleSensorApiWrapper extends IcueWidgetApiWrapper{constructor(p,t=5000){super(p,t)}getSensorValue(id){return this.request(this.plugin.getSensorValue,id)}getSensorUnits(id){return this.request(this.plugin.getSensorUnits,id)}}
+  </script>
+
+  <!-- hexToRGB utility for rgba() color derivation -->
+  <script>
+  function hexToRGB(hex){if(!hex||typeof hex!=='string')return'255,255,255';const b=parseInt(hex.replace('#',''),16);return`${(b>>16)&255},${(b>>8)&255},${b&255}`}
+  </script>
+
+  <!-- ══ iCUE PROPERTIES ══ -->
+
+  <!-- Group 0: Spectrum Analyzer -->
+  <meta name="x-icue-property" content="colorTheme"
+        data-label="tr('Color Theme')" data-type="combobox" data-default="'rainbow'"
+        data-values="[{'key':'rainbow','value':tr('Enchanted Rainbow')},{'key':'retro','value':tr('Retro')},{'key':'led','value':tr('LED')},{'key':'oled','value':tr('OLED')},{'key':'crt','value':tr('CRT Scanlines')},{'key':'winamp','value':tr('WinAmp')}]">
+  <meta name="x-icue-property" content="barCount"
+        data-label="tr('Bar Count')" data-type="slider"
+        data-default="64" data-min="8" data-max="128" data-step="1">
+  <meta name="x-icue-property" content="sensitivity"
+        data-label="tr('Sensitivity')" data-type="slider"
+        data-default="100" data-min="10" data-max="400" data-step="5" data-unit-label="'%'">
+  <meta name="x-icue-property" content="smoothing"
+        data-label="tr('Smoothing')" data-type="slider"
+        data-default="75" data-min="0" data-max="95" data-step="1" data-unit-label="'%'">
+  <meta name="x-icue-property" content="barGap"
+        data-label="tr('Bar Gap')" data-type="slider"
+        data-default="1" data-min="0" data-max="6" data-step="1">
+  <meta name="x-icue-property" content="inputGain"
+        data-label="tr('Input Gain')" data-type="slider"
+        data-default="100" data-min="10" data-max="500" data-step="5" data-unit-label="'%'">
+  <meta name="x-icue-property" content="glowIntensity"
+        data-label="tr('Glow Intensity')" data-type="slider"
+        data-default="70" data-min="0" data-max="100" data-step="1" data-unit-label="'%'">
+  <meta name="x-icue-property" content="peakHold"
+        data-label="tr('Peak Hold')" data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="mirrorMode"
+        data-label="tr('Mirror Mode')" data-type="switch" data-default="false">
+  <meta name="x-icue-property" content="showReflection"
+        data-label="tr('Show Reflection')" data-type="switch" data-default="true">
+  <meta name="x-icue-property" content="barRounding"
+        data-label="tr('Rounded Bars')" data-type="switch" data-default="true">
+
+  <!-- Group 1: Widget Personalization (LAST — required order) -->
+  <meta name="x-icue-property" content="textColor"
+        data-label="tr('Text Color')" data-type="color" data-default="'#ffffff'">
+  <meta name="x-icue-property" content="accentColor"
+        data-label="tr('Accent Color')" data-type="color" data-default="'#7b2fff'">
+  <meta name="x-icue-property" content="backgroundColor"
+        data-label="tr('Background Color')" data-type="color" data-default="'#000000'">
+  <meta name="x-icue-property" content="backgroundImage"
+        data-label="tr('Background Image')" data-type="media-selector"
+        data-filters="['*.png','*.jpg','*.jpeg','*.webp','*.mp4','*.webm']">
+  <meta name="x-icue-property" content="bgBrightness"
+        data-label="tr('Background Brightness')" data-type="slider"
+        data-default="100" data-min="0" data-max="200" data-step="1" data-unit-label="'%'">
+  <meta name="x-icue-property" content="glassBlur"
+        data-label="tr('Glass Blur')" data-type="slider"
+        data-default="0" data-min="0" data-max="30" data-step="1">
+  <meta name="x-icue-property" content="transparency"
+        data-label="tr('Background Transparency')" data-type="slider"
+        data-default="100" data-min="0" data-max="100" data-step="1" data-unit-label="'%'">
+
+  <script id="x-icue-groups" type="application/json">
+  [
+    {
+      "title": "tr('Spectrum Analyzer')",
+      "properties": ["colorTheme","barCount","inputGain","sensitivity","smoothing","barGap","glowIntensity","peakHold","mirrorMode","showReflection","barRounding"]
+    },
+    {
+      "title": "tr('Widget Personalization')",
+      "properties": ["textColor","accentColor","backgroundColor","backgroundImage","bgBrightness","glassBlur","transparency"]
+    }
+  ]
+  </script>
+
+  <link rel="stylesheet" type="text/css" href="styles/SpectrumAnalyzer.css">
+</head>
+<body>
+<div class="widget-root">
+  <div class="widget-background" aria-hidden="true">
+    <div class="main-glass"></div>
+    <div id="media-background"></div>
+  </div>
+  <div class="main-content">
+    <!-- States -->
+    <div class="loading-state" id="state-loading">
+      <div class="sa-loading-icon">◈</div>
+      <div>INITIALIZING AUDIO...</div>
+    </div>
+    <div class="error-state" id="state-error" style="display:none">
+      <div>NO AUDIO SOURCE</div>
+      <div class="state-sub">Run spectrum-server.js or enable Stereo Mix</div>
+    </div>
+
+    <!-- Main spectrum canvas -->
+    <div id="state-content" style="display:none;width:100%;height:100%;position:relative">
+      <canvas id="sa-canvas"></canvas>
+      <!-- Status pill -->
+      <div class="sa-status" id="saStatus">&#9679; SIM</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   Spectrum Analyzer Widget — meloyellowjr
+   Patterns inherited from VU Stereo Meter v1.5.3:
+     • WASAPI bridge polling (port 3749 for FFT bins)
+     • Two-layer canvas: static bg cached, dynamic bars per frame
+     • getIcueProperty() safe guard for iCUE sandboxed context
+     • applyResponsiveTokens() hybrid layout base
+     • Body size/orient classes for responsive CSS
+     • LIVE/SIM indicator + demo fallback
+     • DPR-aware canvas sizing
+     • Inlined MediaViewer, sensor wrappers
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── iCUE EVENT BRIDGE ─────────────────────────────────────────── */
+icueEvents = { onDataUpdated: onIcueDataUpdated, onICUEInitialized: onIcueInitialized };
+pluginSensorsdataproviderEvents = { onInitialized: onSensorPluginReady };
+
+/* ── SAFE PROPERTY ACCESS ──────────────────────────────────────── */
+function getIcueProperty(name) {
+  if(typeof window!=='undefined'&&Object.prototype.hasOwnProperty.call(window,name)){const v=window[name];if(v!==undefined&&v!==null&&v!=='')return v}
+  try{const v=Function('return typeof '+name+'!=="undefined"?'+name+':undefined')();if(v!==undefined&&v!==null&&v!=='')return v}catch(e){}
+  return undefined;
+}
+function clamp(v,mn,mx,def){v=Number(v);return Number.isFinite(v)?Math.max(mn,Math.min(mx,v)):def}
+
+/* ── MEDIA BACKGROUND ──────────────────────────────────────────── */
+function resolveMediaPath(v){if(!v)return'';if(typeof v==='string')return v;return v.pathToAsset||v.path||''}
+function normalizeMediaConfig(raw){const p=resolveMediaPath(raw);if(!p)return null;const b=raw&&typeof raw==='object'?raw:{};return{path:b.pathToAsset||p,baseWidth:Number(b.baseWidth)||0,baseHeight:Number(b.baseHeight)||0,scale:Number.isFinite(Number(b.scale))?Number(b.scale):1,positionX:Number(b.positionX)||0,positionY:Number(b.positionY)||0,angle:Number(b.angle)||0}}
+const mediaMount=document.getElementById('media-background');
+function makeBg(cont){if(!cont)return{clear:()=>{},loadMedia:()=>{}};if(typeof MediaViewer==='function'){const v=new MediaViewer({container:cont,onMediaError:e=>console.error(e)});return{clear:()=>v.clear(),loadMedia:c=>v.loadMedia(c)}}return{clear:()=>{cont.style.backgroundImage=''},loadMedia:c=>{const p=c&&c.path?c.path:resolveMediaPath(c);if(!p){cont.style.backgroundImage='';return}cont.style.backgroundImage="url('"+String(p).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"')";cont.style.backgroundRepeat='no-repeat';cont.style.backgroundSize='cover';cont.style.backgroundPosition='center';cont.style.visibility='visible'}}}
+const mediaBg=makeBg(mediaMount);
+
+/* ── RESPONSIVE TOKENS ─────────────────────────────────────────── */
+function applyResponsiveTokens(){
+  const el=document.querySelector('.widget-root');
+  if(!el)return;
+  const W=el.clientWidth||window.innerWidth,H=el.clientHeight||window.innerHeight;
+  if(!W||!H)return;
+  const lb=Math.min(W,H)*0.7+Math.sqrt(W*H)*0.3;
+  const r=document.documentElement;
+  r.style.setProperty('--layout-base',lb+'px');
+  r.style.setProperty('--fs-primary',Math.max(18,Math.min(180,lb*0.11))+'px');
+  r.style.setProperty('--fs-secondary',Math.max(12,Math.min(72,lb*0.05))+'px');
+  r.style.setProperty('--fs-label',Math.max(11,Math.min(48,lb*0.038))+'px');
+  const longSide=Math.max(W,H),shortSide=Math.min(W,H);
+  const orient=W<=710?'v':'h';
+  let size;if(longSide>=2200)size='xl';else if(longSide>=1400)size='l';else if(shortSide>420)size='m';else size='s';
+  document.body.className='size-'+size+' orient-'+orient;
+}
+
+/* ── STYLES ────────────────────────────────────────────────────── */
+function applyStyles(){
+  const root=document.documentElement;
+  const bgT=clamp(getIcueProperty('transparency'),0,100,100)/100;
+  root.style.setProperty('--bg-opacity',bgT);
+  const tc=getIcueProperty('textColor'),ac=getIcueProperty('accentColor'),bgc=getIcueProperty('backgroundColor');
+  root.style.setProperty('--text-color',typeof tc==='string'&&tc?tc:'#ffffff');
+  root.style.setProperty('--accent-color',typeof ac==='string'&&ac?ac:'#7b2fff');
+  root.style.setProperty('--bg-color',typeof bgc==='string'&&bgc?bgc:'#000000');
+  root.style.setProperty('--bg-blur',clamp(getIcueProperty('glassBlur'),0,30,0)+'px');
+  root.style.setProperty('--bg-brightness',clamp(getIcueProperty('bgBrightness'),0,200,100)+'%');
+  const bgM=getIcueProperty('backgroundImage'),mp=resolveMediaPath(bgM);
+  if(!mp){mediaBg.clear();return;}
+  const cfg=normalizeMediaConfig(bgM);
+  if(cfg)mediaBg.loadMedia(cfg);
+}
+
+function showState(s){
+  ['loading','error','content'].forEach(k=>{
+    const el=document.getElementById('state-'+k);
+    if(el)el.style.display=k===s?'':'none';
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SPECTRUM ENGINE
+   ══════════════════════════════════════════════════════════════════ */
+
+const BRIDGE_URL = 'http://127.0.0.1:3749/fft';
+const POLL_MS    = 16; // ~60fps polling
+const NUM_BINS   = 64; // bins from bridge
+
+const canvas = document.getElementById('sa-canvas');
+const ctx    = canvas.getContext('2d');
+let   dpr    = window.devicePixelRatio || 1;
+
+/* Current config (read from iCUE props each frame) */
+let cfg = {
+  theme: 'rainbow', barCount: 64, sensitivity: 100,
+  smoothing: 75, barGap: 1, peakHold: true, mirror: false, reflection: true,
+  inputGain: 100, glowIntensity: 70, barRound: true
+};
+
+/* Bar state: height, peakHeight, peakTimer, normalised (0-1) */
+let bars = [];
+
+/* Audio source state */
+let rawBins  = new Float32Array(NUM_BINS); // from bridge or WebAudio
+let usingSim = true;
+let bridgeOk = false;
+let pollTimer = null;
+
+/* WebAudio state */
+let audioCtx  = null;
+let analyser  = null;
+let webAudioOk = false;
+let webAudioData = null;
+
+/* Demo / sim */
+let simT = 0;
+
+/* Static bg cache (theme-keyed): redrawn only on theme/resize change */
+let bgCache = null;
+let bgCacheKey = '';
+
+/* ── AUDIO BRIDGE POLLING ──────────────────────────────────────── */
+function startBridge(){ if(!pollTimer) pollBridge(); }
+
+async function pollBridge(){
+  try{
+    const r=await fetch(BRIDGE_URL,{cache:'no-store',signal:AbortSignal.timeout(100)});
+    if(!r.ok)throw new Error('bad');
+    const d=await r.json();
+    if(Array.isArray(d.bins)&&d.bins.length>0){
+      const nb=Math.min(d.bins.length,NUM_BINS);
+      for(let i=0;i<nb;i++) rawBins[i]=Math.max(0,Math.min(1,d.bins[i]));
+      usingSim=false; bridgeOk=true;
+      updateStatus(true,'BRIDGE');
+    }
+  }catch(e){
+    if(bridgeOk){bridgeOk=false;updateStatus(false,'');}
+    if(!webAudioOk) usingSim=true;
+  }finally{
+    pollTimer=setTimeout(pollBridge,POLL_MS);
+  }
+}
+
+/* ── WEB AUDIO API FALLBACK ────────────────────────────────────── */
+function allowMicrophoneFallback(){
+  return getIcueProperty('allowMicrophoneFallback')===true;
+}
+
+function tryWebAudio(){
+  if(!allowMicrophoneFallback()) return;
+  if(audioCtx||webAudioOk) return;
+  try{
+    audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    analyser=audioCtx.createAnalyser();
+    analyser.fftSize=4096;
+    analyser.smoothingTimeConstant=0.75;
+    analyser.minDecibels=-90;
+    analyser.maxDecibels=-10;
+    webAudioData=new Uint8Array(analyser.frequencyBinCount);
+
+    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false})
+      .then(stream=>{
+        if(bridgeOk){
+          stream.getTracks().forEach(track=>track.stop());
+          return;
+        }
+        audioCtx.createMediaStreamSource(stream).connect(analyser);
+        webAudioOk=true; usingSim=false;
+        updateStatus(true,'LIVE');
+      })
+      .catch(()=>{ console.warn('[SA] getUserMedia unavailable — using bridge/sim'); });
+  }catch(e){ console.warn('[SA] AudioContext unavailable'); }
+}
+
+/* ── STATUS INDICATOR ──────────────────────────────────────────── */
+function updateStatus(live,label){
+  const el=document.getElementById('saStatus');
+  if(!el) return;
+  el.textContent=live?`\u25CF ${label}`:'\u25CF SIM';
+  el.style.color=live?'#44ee22':'#556644';
+}
+
+/* ── SENSOR PLUGIN (tertiary fallback) ─────────────────────────── */
+let sensorApi=null;
+function onSensorPluginReady(){
+  sensorApi=new SimpleSensorApiWrapper(window.plugins.Sensorsdataprovider);
+}
+
+/* ── CANVAS SIZING ─────────────────────────────────────────────── */
+function resizeCanvas(){
+  const root=document.querySelector('.widget-root');
+  if(!root) return;
+  dpr=window.devicePixelRatio||1;
+  const W=root.clientWidth,H=root.clientHeight;
+  canvas.width =Math.round(W*dpr);
+  canvas.height=Math.round(H*dpr);
+  canvas.style.width =W+'px';
+  canvas.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0); // setTransform avoids DPR accumulation bug
+  bgCache=null; // force static layer rebuild
+  rebuildBars();
+}
+
+/* ── BAR STATE ─────────────────────────────────────────────────── */
+function rebuildBars(){
+  const n=cfg.barCount;
+  if(bars.length===n) return;
+  bars=Array.from({length:n},()=>({h:0,peakH:0,peakT:0,norm:0}));
+}
+
+/* ── FFT BIN → BAR MAPPING (logarithmic) ───────────────────────── */
+function getBinRange(barIdx,barCount,numBins){
+  // Map bars logarithmically across available bins
+  const lo=Math.floor(Math.pow(barIdx/barCount,1.2)*numBins);
+  const hi=Math.max(lo+1,Math.floor(Math.pow((barIdx+1)/barCount,1.2)*numBins));
+  return[Math.min(lo,numBins-1),Math.min(hi,numBins)];
+}
+
+/* WebAudio version: map FFT buffer logarithmically 20Hz-18kHz */
+function getWebAudioBinRange(barIdx,barCount,fftBins,sampleRate){
+  const nyquist=sampleRate/2,minF=20,maxF=Math.min(18000,nyquist);
+  const lo=minF*Math.pow(maxF/minF,barIdx/barCount);
+  const hi=minF*Math.pow(maxF/minF,(barIdx+1)/barCount);
+  return[Math.max(0,Math.floor(lo/nyquist*fftBins)),Math.min(fftBins-1,Math.ceil(hi/nyquist*fftBins))];
+}
+
+/* ── dB PERCEPTUAL SCALING ─────────────────────────────────────────
+   Bridge serves raw linear FFT magnitudes (typical range: 0.0001–0.1).
+   Human hearing is logarithmic — convert to dB then normalize to 0–1.
+   -80 dB (silence floor) → 0.0,  -10 dB (loud) → 1.0
+   ────────────────────────────────────────────────────────────────── */
+function linToDB(v){
+  if(v<=0)return 0;
+  const dB=20*Math.log10(v);
+  return Math.max(0,Math.min(1,(dB+80)/70));
+}
+
+/* ── UPDATE BAR DATA EACH FRAME ────────────────────────────────── */
+function updateBars(){
+  const H=canvas.height/dpr;
+  const gainScale=(cfg.sensitivity/100)*(cfg.inputGain/100);
+  const n=cfg.barCount;
+
+  for(let i=0;i<n;i++){
+    let norm=0;
+
+    if(bridgeOk&&!usingSim){
+      // Bridge already returns normalized 0-1 FFT bins.
+      const[lo,hi]=getBinRange(i,n,rawBins.length);
+      let sum=0,cnt=0;
+      for(let b=lo;b<hi;b++){sum+=rawBins[b];cnt++;}
+      const rawAvg=cnt>0?sum/cnt:0;
+      norm=Math.min(1,rawAvg*gainScale);
+    } else if(webAudioOk&&analyser&&webAudioData){
+      // Web Audio API already returns byte values on a dB-scaled range
+      analyser.smoothingTimeConstant=cfg.smoothing/100;
+      analyser.getByteFrequencyData(webAudioData);
+      const[lo,hi]=getWebAudioBinRange(i,n,analyser.frequencyBinCount,audioCtx.sampleRate);
+      let sum=0,cnt=0;
+      for(let b=lo;b<=Math.max(lo,hi);b++){sum+=webAudioData[b];cnt++;}
+      norm=Math.min(1,(cnt>0?sum/cnt:0)/255*gainScale);
+    } else if(bridgeOk&&!usingSim){
+      // Bridge serves linear FFT magnitudes — apply dB perceptual conversion
+      const[lo,hi]=getBinRange(i,n,rawBins.length);
+      let sum=0,cnt=0;
+      for(let b=lo;b<hi;b++){sum+=rawBins[b];cnt++;}
+      const rawAvg=cnt>0?sum/cnt:0;
+      norm=Math.min(1,rawAvg*gainScale);
+    } else {
+      // Demo / simulation — already produces 0-1 values
+      const freq=i/n;
+      norm=Math.min(1,Math.max(0,
+        Math.max(0,Math.sin(simT*1.8)*.5+.4)*Math.exp(-freq*4)*.85+
+        Math.max(0,Math.sin(simT*1.3+.8)*.35+.25)*Math.exp(-Math.pow(freq-.35,2)*18)+
+        Math.max(0,Math.sin(simT*2.1+1.5)*.18+.1)*Math.exp(-Math.pow(freq-.72,2)*12)+
+        (Math.random()-.5)*.04
+      )*gainScale);
+    }
+
+    const targetH=norm*H*0.97; // 97% height — fill the screen
+    // Fast attack, slower decay
+    bars[i].h=targetH>bars[i].h
+      ?bars[i].h*.15+targetH*.85
+      :bars[i].h*.82+targetH*.18;
+    bars[i].norm=bars[i].h/H;
+
+    // Peak hold
+    if(cfg.peakHold){
+      if(bars[i].h>=bars[i].peakH){bars[i].peakH=bars[i].h;bars[i].peakT=55;}
+      else if(bars[i].peakT>0)bars[i].peakT--;
+      else bars[i].peakH=Math.max(0,bars[i].peakH-1.8);
+    } else { bars[i].peakH=0; }
+  }
+}
+
+/* ── LAYOUT HELPER ─────────────────────────────────────────────── */
+function getLayout(){
+  const W=canvas.width/dpr,H=canvas.height/dpr;
+  const n=cfg.barCount;
+  const gap=cfg.barGap;
+  const bw=Math.max(1,Math.floor((W-gap*(n-1))/n));
+  const totalW=bw*n+gap*(n-1);
+  const ox=Math.floor((W-totalW)/2);
+  return{W,H,n,bw,gap,ox};
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   STATIC BACKGROUND CACHE
+   Redrawn only when theme / size changes — same two-layer pattern
+   as VU Meter for maximum per-frame efficiency.
+   ══════════════════════════════════════════════════════════════════ */
+function buildStaticBg(W,H,theme){
+  const off=document.createElement('canvas');
+  off.width=W; off.height=H;
+  const c=off.getContext('2d');
+
+  if(theme==='retro'){
+    // Phosphor screen base
+    c.fillStyle='#000a00';
+    c.fillRect(0,0,W,H);
+    // Subtle grid lines
+    c.strokeStyle='rgba(0,60,0,0.25)';c.lineWidth=1;
+    const gS=Math.max(20,Math.floor(H/20));
+    for(let y=0;y<H;y+=gS){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}
+    for(let x=0;x<W;x+=gS*2){c.beginPath();c.moveTo(x,0);c.lineTo(x,H);c.stroke();}
+  } else if(theme==='crt'){
+    c.fillStyle='#030a03';
+    c.fillRect(0,0,W,H);
+  } else if(theme==='winamp'){
+    // WinAmp classic dark blue-black
+    c.fillStyle='#0e0e18';
+    c.fillRect(0,0,W,H);
+    // Subtle scanlines
+    c.fillStyle='rgba(0,0,0,0.25)';
+    for(let y=0;y<H;y+=2)c.fillRect(0,y,W,1);
+  } else if(theme==='oled'){
+    c.fillStyle='#000000';
+    c.fillRect(0,0,W,H);
+  } else {
+    // rainbow / led: transparent (user bg shows through)
+    c.clearRect(0,0,W,H);
+  }
+
+  // Baseline separator
+  if(theme!=='oled'){
+    c.strokeStyle=theme==='retro'?'rgba(0,160,0,0.4)':theme==='winamp'?'rgba(80,80,140,0.5)':theme==='crt'?'rgba(0,180,0,0.3)':'rgba(255,255,255,0.08)';
+    c.lineWidth=1;
+    c.beginPath();c.moveTo(0,H);c.lineTo(W,H);c.stroke();
+  }
+  return off;
+}
+
+/* ── ROUNDED BAR FILL HELPER ───────────────────────────────────── */
+function fillBar(x,y,w,h,round){
+  if(!round||w<4||h<6){ctx.fillRect(x,y,w,h);return;}
+  const r=Math.min(w/2,4); // 4px corner radius max
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h);
+  ctx.lineTo(x,y+h);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DRAW A SINGLE BAR — the heart of all 6 themes
+   ══════════════════════════════════════════════════════════════════ */
+function drawBar(theme,x,bw,bh,H,bar,ratio,timeS){
+  if(bh<1) bh=1;
+  const {peakH,norm}=bar;
+  const glow=cfg.glowIntensity/100; // 0-1 glow multiplier
+
+  /* ── 1. Enchanted Rainbow ──────────────────────────────────────── */
+  if(theme==='rainbow'){
+    const h1=((ratio*300+timeS*45)%360);
+    const h2=(h1+70)%360,h3=(h1+140)%360;
+    const g=ctx.createLinearGradient(0,H,0,H-bh);
+    g.addColorStop(0,`hsla(${h1},100%,40%,1)`);
+    g.addColorStop(.45,`hsla(${h2},100%,55%,.95)`);
+    g.addColorStop(1,`hsla(${h3},100%,72%,.9)`);
+    ctx.shadowBlur=glow*24;ctx.shadowColor=`hsla(${h2},100%,55%,.8)`;
+    ctx.fillStyle=g;fillBar(x,H-bh,bw,bh,cfg.barRound);
+    if(cfg.peakHold&&peakH>4){
+      ctx.shadowBlur=glow*18;ctx.shadowColor=`hsla(${h3},100%,80%,1)`;
+      ctx.fillStyle=`hsla(${h3},100%,88%,.95)`;
+      ctx.fillRect(x,H-peakH-3,bw,3);
+    }
+    if(cfg.reflection&&bh>2){
+      ctx.shadowBlur=0;
+      const rg=ctx.createLinearGradient(0,H,0,H+bh*.4);
+      rg.addColorStop(0,`hsla(${h1},100%,40%,.35)`);rg.addColorStop(1,`hsla(${h1},100%,40%,0)`);
+      ctx.fillStyle=rg;ctx.fillRect(x,H,bw,bh*.4);
+    }
+
+  /* ── 2. Retro (phosphor green) ─────────────────────────────────── */
+  } else if(theme==='retro'){
+    const gv=Math.floor(80+norm*175);
+    const grad=ctx.createLinearGradient(0,H,0,H-bh);
+    grad.addColorStop(0,`rgb(0,${Math.max(30,gv-70)},0)`);
+    grad.addColorStop(1,`rgb(10,${gv},15)`);
+    ctx.shadowBlur=glow*(4+norm*18);ctx.shadowColor='rgba(0,220,20,.7)';
+    ctx.fillStyle=grad;fillBar(x,H-bh,bw,bh,cfg.barRound);
+    if(cfg.peakHold&&peakH>4){
+      ctx.fillStyle='#00ff55';ctx.shadowBlur=glow*16;ctx.shadowColor='#00ff55';
+      ctx.fillRect(x,H-peakH-2,bw,2);
+    }
+
+  /* ── 3. LED Bargraph ───────────────────────────────────────────── */
+  } else if(theme==='led'){
+    const segH=Math.max(3,Math.floor(H/50));
+    const segGap=Math.max(1,Math.floor(segH*.35));
+    const segTot=segH+segGap;
+    const numSeg=Math.floor(H/segTot);
+    const actSeg=Math.round(norm*numSeg);
+    const pkSeg=cfg.peakHold&&peakH>0?Math.round((peakH/H)*numSeg):-1;
+
+    for(let s=0;s<numSeg;s++){
+      const sy=H-(s+1)*segTot+segGap;
+      const sr=s/numSeg;
+      if(s<actSeg){
+        const col=sr<.60?'#00ff00':sr<.80?'#ffdd00':'#ff2200';
+        ctx.fillStyle=col;ctx.shadowBlur=glow*6;ctx.shadowColor=col;
+      } else if(s===pkSeg){
+        const col=sr<.60?'#00ff00':sr<.80?'#ffdd00':'#ff2200';
+        ctx.fillStyle='#ffffff';ctx.shadowBlur=glow*12;ctx.shadowColor=col;
+      } else {
+        ctx.fillStyle='rgba(255,255,255,0.05)';ctx.shadowBlur=0;
+      }
+      ctx.fillRect(x,sy,bw,segH);
+    }
+
+  /* ── 4. OLED ───────────────────────────────────────────────────── */
+  } else if(theme==='oled'){
+    const hue=210+ratio*150,hue2=hue+40;
+    const lBase=35+norm*15;
+    const g=ctx.createLinearGradient(0,H,0,H-bh);
+    g.addColorStop(0,`hsl(${hue},100%,${lBase}%)`);
+    g.addColorStop(.6,`hsl(${hue2},100%,${lBase+18}%)`);
+    g.addColorStop(1,`hsl(${hue2+20},80%,88%)`);
+    ctx.shadowBlur=glow*(2+norm*8);ctx.shadowColor=`hsl(${hue},100%,60%)`;
+    ctx.fillStyle=g;fillBar(x,H-bh,bw,bh,cfg.barRound);
+    if(cfg.peakHold&&peakH>2){
+      ctx.fillStyle='#fff';ctx.shadowBlur=glow*10;ctx.shadowColor=`hsl(${hue2},100%,75%)`;
+      ctx.fillRect(x,H-peakH-2,bw,2);
+    }
+
+  /* ── 5. CRT Scanlines ──────────────────────────────────────────── */
+  } else if(theme==='crt'){
+    const r2=ratio>.6?Math.floor((ratio-.6)/.4*200):0;
+    const g2=Math.floor(100+norm*155);
+    ctx.shadowBlur=glow*(10+norm*20);ctx.shadowColor=`rgb(${r2},${g2},0)`;
+    ctx.fillStyle=`rgb(${r2},${g2},0)`;fillBar(x,H-bh,bw,bh,cfg.barRound);
+    if(cfg.peakHold&&peakH>2){
+      ctx.fillStyle='rgba(255,255,255,.9)';ctx.shadowBlur=glow*18;ctx.shadowColor=`rgb(${r2},${g2},0)`;
+      ctx.fillRect(x,H-peakH-2,bw,2);
+    }
+
+  /* ── 6. WinAmp ─────────────────────────────────────────────────── */
+  } else if(theme==='winamp'){
+    const g=ctx.createLinearGradient(0,H,0,0);
+    g.addColorStop(0,'#002858');g.addColorStop(.22,'#005a88');
+    g.addColorStop(.45,'#009898');g.addColorStop(.68,'#30c040');
+    g.addColorStop(.83,'#d8d800');g.addColorStop(.93,'#e86000');g.addColorStop(1,'#c80000');
+    ctx.shadowBlur=0;ctx.fillStyle=g;fillBar(x,H-bh,bw,bh,false); // WinAmp = sharp
+    if(cfg.peakHold&&peakH>1){
+      ctx.fillStyle='#e8e8e8';ctx.fillRect(x,H-peakH-1,bw,1);
+    }
+    if(cfg.reflection&&bh>2){
+      const rh=bh*.25;
+      const rg=ctx.createLinearGradient(0,H,0,H+rh);
+      rg.addColorStop(0,'rgba(0,40,88,.35)');rg.addColorStop(1,'rgba(0,40,88,0)');
+      ctx.fillStyle=rg;ctx.fillRect(x,H,bw,rh);
+    }
+  }
+}
+
+/* ── THEME OVERLAY EFFECTS ─────────────────────────────────────── */
+function drawOverlays(theme,W,H){
+  if(theme==='retro'||theme==='crt'){
+    // Scanlines
+    ctx.fillStyle='rgba(0,0,0,.14)';
+    for(let y=0;y<H;y+=2)ctx.fillRect(0,y,W,1);
+    // Vignette
+    const vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*.22,W/2,H/2,Math.max(W,H)*.78);
+    vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(.75,'rgba(0,0,0,.06)');vg.addColorStop(1,'rgba(0,0,0,.45)');
+    ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+    if(theme==='crt'){ctx.fillStyle='rgba(0,14,0,.04)';ctx.fillRect(0,0,W,H);}
+  }
+  if(theme==='winamp'){
+    // Baseline highlight
+    ctx.fillStyle='rgba(0,60,120,.4)';ctx.fillRect(0,H-1,W,1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   MAIN RENDER LOOP — rAF driven
+   ═══════════════════════════════════════════════════ */
+let animRunning=false;
+let lastRaf=0;
+
+function renderFrame(ts){
+  requestAnimationFrame(renderFrame);
+  const timeS=ts/1000;
+  simT=timeS; // drive demo
+
+  // Read config every frame (property changes arrive via onDataUpdated)
+  readConfig();
+  updateBars();
+
+  const{W,H,n,bw,gap,ox}=getLayout();
+
+  // Rebuild static bg cache if theme/size changed
+  const cacheKey=`${cfg.theme}_${W}_${H}`;
+  if(bgCacheKey!==cacheKey){bgCache=buildStaticBg(W,H,cfg.theme);bgCacheKey=cacheKey;}
+
+  // Blit static background
+  ctx.clearRect(0,0,W,H);
+  if(bgCache)ctx.drawImage(bgCache,0,0,W,H);
+
+  // Draw bars
+  ctx.save();
+  if(cfg.mirror){
+    const half=Math.ceil(n/2);
+    for(let i=0;i<half;i++){
+      const bar=bars[i]||{h:0,peakH:0,peakT:0,norm:0};
+      const bh=Math.max(1,bar.h);
+      // Right side: bars go outward from center
+      const xR=W/2+i*(bw+gap);
+      const xL=W/2-(i+1)*(bw+gap);
+      drawBar(cfg.theme,xR,bw,bh,H,bar,i/half,timeS);
+      if(xL>=0)drawBar(cfg.theme,xL,bw,bh,H,bar,i/half,timeS);
+    }
+  } else {
+    for(let i=0;i<n;i++){
+      const bar=bars[i]||{h:0,peakH:0,peakT:0,norm:0};
+      drawBar(cfg.theme,ox+i*(bw+gap),bw,Math.max(1,bar.h),H,bar,i/n,timeS);
+    }
+  }
+  ctx.shadowBlur=0;
+
+  // Theme overlay effects (scanlines, vignette, etc.)
+  drawOverlays(cfg.theme,W,H);
+  ctx.restore();
+}
+
+/* ── READ iCUE PROPERTIES ──────────────────────────────────────── */
+function readConfig(){
+  const prevN=cfg.barCount;
+  cfg.theme      =getIcueProperty('colorTheme')||'rainbow';
+  cfg.barCount   =clamp(getIcueProperty('barCount'),8,128,64);
+  cfg.sensitivity=clamp(getIcueProperty('sensitivity'),10,400,100);
+  cfg.smoothing  =clamp(getIcueProperty('smoothing'),0,95,75);
+  cfg.barGap     =clamp(getIcueProperty('barGap'),0,6,1);
+  cfg.peakHold   =getIcueProperty('peakHold')!==false;
+  cfg.mirror       =getIcueProperty('mirrorMode')===true;
+  cfg.reflection   =getIcueProperty('showReflection')!==false;
+  cfg.inputGain    =clamp(getIcueProperty('inputGain'),10,500,100);
+  cfg.glowIntensity=clamp(getIcueProperty('glowIntensity'),0,100,70);
+  cfg.barRound     =getIcueProperty('barRounding')!==false;
+  if(cfg.barCount!==prevN)bars=Array.from({length:cfg.barCount},()=>({h:0,peakH:0,peakT:0,norm:0}));
+}
+
+/* ── iCUE LIFECYCLE ────────────────────────────────────────────── */
+function onIcueDataUpdated(){
+  applyResponsiveTokens();
+  applyStyles();
+  readConfig();
+  if(document.getElementById('state-content').style.display==='none'){
+    showState('content');
+    if(!animRunning){animRunning=true;requestAnimationFrame(renderFrame);}
+    resizeCanvas();
+    startBridge();
+    tryWebAudio();
+  }
+}
+
+function onIcueInitialized(){
+  if(typeof ResizeObserver!=='undefined'){
+    const root=document.querySelector('.widget-root');
+    if(root){new ResizeObserver(()=>{applyResponsiveTokens();resizeCanvas();}).observe(root);}
+  }
+  onIcueDataUpdated();
+}
+
+// Browser test bootstrap
+if(typeof iCUE_initialized!=='undefined'&&iCUE_initialized){
+  onIcueInitialized();
+} else {
+  onIcueDataUpdated();
+}
+if(typeof pluginSensorsdataprovider_initialized!=='undefined'&&pluginSensorsdataprovider_initialized) onSensorPluginReady();
+</script>
+</body>
+</html>

@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>tr('AQI')</title>
+		<link rel="icon" type="image/svg+xml" href="resources/AirQuality.svg">
+
+		<meta
+			name="x-icue-property"
+			content="weatherLocation"
+			data-label="tr('Location')"
+			data-type="search-combobox"
+			data-values="OpenMeteo.getWeatherLocations"
+			data-default="OpenMeteo.getDefaultLocation"
+			data-placeholder="tr('Select Location')"
+		>
+
+		<meta
+			name="x-icue-property"
+			content="textColor"
+			data-label="tr('Text Color')"
+			data-type="color"
+			data-default="'#ffffff'"
+		>
+		<meta
+			name="x-icue-property"
+			content="accentColor"
+			data-label="tr('Accent Color')"
+			data-type="color"
+			data-default="'#ffffff'"
+		>
+		<meta
+			name="x-icue-property"
+			content="backgroundColor"
+			data-label="tr('Background')"
+			data-type="color"
+			data-default="'#000000'"
+		>
+		<meta
+			name="x-icue-property"
+			content="transparency"
+			data-label="tr('Widget Transparency')"
+			data-type="slider"
+			data-default="80"
+			data-min="1"
+			data-max="100"
+			data-step="1"
+		>
+
+		<meta
+			name="x-icue-property"
+			content="backgroundMedia"
+			data-label="tr('Image')"
+			data-type="media-selector"
+			data-filters="['*.webm', '*.mp4', '*.mkv', '*.gif', '*.png', '*.jpg', '*.jpeg', '*.bmp', '*.ico']"
+		>
+
+		<script type="application/json" id="x-icue-groups">
+		[
+			{
+				"title": "tr('AQI Settings')",
+				"properties": ["weatherLocation"],
+				"info": "`Air data by &lt;a href='https://open-meteo.com/' style='color: #00AAFF;'&gt;Open-Meteo.com&lt;/a&gt;`"
+			},
+			{
+				"title": "tr('AQI Personalization')",
+				"properties": ["textColor", "accentColor", "backgroundColor", "backgroundMedia", "transparency"]
+			}
+		]
+		</script>
+
+		<script type="text/javascript" src="../../common/tools/media_viewer/MediaViewer.js"></script>
+		<link rel="stylesheet" href="../../common/tools/media_viewer/MediaViewer.css">
+		<link rel="stylesheet" type="text/css" href="styles/AirQuality.css">
+	</head>
+	<body>
+		<div class="widget-background">
+			<div id="media-background"></div>
+		</div>
+		<div class="aqi-widget">
+			<div class="card">
+				<div class="aqi-gauge">
+					<svg id="aqi-value-bar" viewBox="0 0 300 300" width="300" height="300">
+						<circle cx="150" cy="150" r="150"></circle>
+						<circle
+							id="value-circle"
+							cx="150"
+							cy="150"
+							r="150"
+							style="stroke: url(#gradient-usa);"
+						></circle>
+						<defs>
+							<linearGradient id="gradient-usa" x1="0%" y1="0%" x2="100%" y2="100%">
+								<stop offset="0%" style="stop-color: #8A191D"/>
+								<stop offset="40%" style="stop-color: #8D4199"/>
+								<stop offset="70%" style="stop-color: #ED1B24"/>
+								<stop offset="80%" style="stop-color: #F8901F"/>
+								<stop offset="90%" style="stop-color: #FEF200"/>
+								<stop offset="100%" style="stop-color: #A6CE39"/>
+							</linearGradient>
+							<linearGradient id="gradient-eu" x1="0%" y1="0%" x2="100%" y2="100%">
+								<stop offset="0%" style="stop-color: #8A191D"/>
+								<stop offset="20%" style="stop-color: #8D4199"/>
+								<stop offset="40%" style="stop-color: #ED1B24"/>
+								<stop offset="60%" style="stop-color: #F8901F"/>
+								<stop offset="80%" style="stop-color: #FEF200"/>
+								<stop offset="100%" style="stop-color: #A6CE39"/>
+							</linearGradient>
+						</defs>
+					</svg>
+
+					<div id="aqi-header">
+						<div id="aqi-title">AQI</div>
+						<div id="city-name"></div>
+					</div>
+
+					<div class="aqi-value" id="aqi-value">—</div>
+
+					<ul class="compact-metrics">
+						<li class="pollutant">
+							<div class="p-label">PM2.5</div>
+							<div class="p-value" id="c-pm25">—</div>
+						</li>
+						<li class="pollutant">
+							<div class="p-label">PM10</div>
+							<div class="p-value" id="c-pm10">—</div>
+						</li>
+						<li class="pollutant">
+							<div class="p-label">O₃</div>
+							<div class="p-value" id="c-o3">—</div>
+						</li>
+					</ul>
+
+					<div id="aqi-footer">
+						<div id="aqi-category"></div>
+						<div id="aqi-updated"></div>
+					</div>
+
+					<div id="aqi-tip">
+						<div id="aqi-tip-circle"></div>
+					</div>
+				</div>
+
+				<ul class="detailed-metrics">
+					<li class="pollutant">
+						<div class="p-label">PM2.5</div>
+						<div class="p-value" id="pm25">—</div>
+					</li>
+					<li class="pollutant">
+						<div class="p-label">PM10</div>
+						<div class="p-value" id="pm10">—</div>
+					</li>
+					<li class="pollutant">
+						<div class="p-label">O₃</div>
+						<div class="p-value" id="o3">—</div>
+					</li>
+					<li class="pollutant">
+						<div class="p-label">SO₂</div>
+						<div class="p-value" id="so2">—</div>
+					</li>
+					<li class="pollutant">
+						<div class="p-label">CO</div>
+						<div class="p-value" id="co">—</div>
+					</li>
+					<li class="pollutant">
+						<div class="p-label">NO₂</div>
+						<div class="p-value" id="no2">—</div>
+					</li>
+				</ul>
+			</div>
+
+			<div class="error" aria-hidden="true">
+				<div class="error-text"></div>
+			</div>
+		</div>
+		<script>
+		icueEvents = {
+			"onDataUpdated": onIcueDataUpdated,
+			"onICUEInitialized": onIcueInitialized
+		};
+
+		let languageCode = "en";
+		let currentLocationId = null;
+		let locationData = null;
+		let locationAbort = null;
+		let aqAbort = null;
+		let aqData = null;
+		let refreshTimerId = null;
+		let compactVisible = false;
+		let detailedVisible = false;
+		let metricsRendered = false;
+
+		const REFRESH_MS = 15 * 60 * 1000;
+		const FAST_MS = 10 * 1000;
+
+		let aqiTitle = "AQI";
+		let eaqiTitle = "EAQI";
+		let updatedText = "Updated";
+		let goodText = "Good";
+		let moderateText = "Moderate";
+		let unhealthySGText = "Unhealthy (SG)";
+		let unhealthyText = "Unhealthy";
+		let veryUnhealthyText = "Very Unhealthy";
+		let hazardousText = "Hazardous";
+		let fairText = "Fair";
+		let poorText = "Poor";
+		let veryPoorText = "Very Poor";
+		let extremelyPoorText = "Extremely Poor";
+		let ppbText = "ppb";
+		let ppmText = "ppm";
+		let ugm3Text = "µg/m³;";
+
+		const volumeLPerMol = 24.45;
+		const pollutantWeights = {
+			so2: 64.07,
+			co: 28.01,
+			no2: 46.01,
+			o3: 48.0
+		};
+
+		const usaColorsGradient = `linear-gradient(to right,
+    #A6CE39 0%,
+    #FEF200 10%,
+    #F8901F 20%,
+    #ED1B24 30%,
+    #8D4199 60%,
+    #8A191D 100%
+    )`;
+
+		const euColorsGradient = `linear-gradient(to right,
+    #A6CE39 0%,
+    #FEF200 20%,
+    #F8901F 40%,
+    #ED1B24 60%,
+    #8D4199 80%,
+    #8A191D 100%
+    )`;
+
+		const root = document.documentElement;
+		const mediaBackground = document.getElementById("media-background");
+		const mediaBackgroundComponent = new MediaViewer({
+			container: mediaBackground,
+			onMediaLoaded: (mediaElement) => {
+				console.log("Media loaded:", mediaElement.tagName);
+			},
+			onMediaError: (error) => {
+				console.error("Media error:", error);
+			}
+		});
+
+		function onIcueInitialized() {
+			languageCode = iCUE.iCUELanguage;
+			updateTranslations();
+			onIcueDataUpdated();
+
+			window.addEventListener("resize", function () {
+				renderMetrics(aqData);
+			});
+		}
+
+		if (typeof iCUE_initialized !== "undefined" && iCUE_initialized) {
+			onIcueInitialized();
+		}
+
+		function scheduleRefreshFast(isFast) {
+			if (refreshTimerId) clearInterval(refreshTimerId);
+			refreshTimerId = setInterval(
+				() => {
+					if (!locationData) {
+						updateLocationData(currentLocationId);
+					} else {
+						updateAirQuality();
+					}
+				},
+				isFast ? FAST_MS : REFRESH_MS
+			);
+		}
+
+		function setError(message) {
+			const root = document.querySelector(".aqi-widget");
+			root.classList.add("has-error");
+			root.querySelector(".error .error-text").textContent = message;
+			scheduleRefreshFast(true);
+		}
+		function clearError() {
+			const root = document.querySelector(".aqi-widget");
+			root.classList.remove("has-error");
+			scheduleRefreshFast(false);
+		}
+
+		function onIcueDataUpdated() {
+			if (typeof backgroundMedia === "undefined") {
+				mediaBackgroundComponent.clear();
+			} else {
+				mediaBackgroundComponent.loadMedia({
+					path: backgroundMedia["pathToAsset"],
+					baseWidth: backgroundMedia["baseWidth"],
+					baseHeight: backgroundMedia["baseHeight"],
+					scale: backgroundMedia["scale"],
+					positionX: backgroundMedia["positionX"],
+					positionY: backgroundMedia["positionY"],
+					angle: backgroundMedia["angle"]
+				});
+			}
+
+			if (currentLocationId !== weatherLocation) {
+				currentLocationId = weatherLocation;
+				updateLocationData(currentLocationId);
+
+				if (!String(weatherLocation || "").trim()) {
+					tr("Select Location to Show Air Quality").then(setError);
+					return;
+				}
+			}
+			updateStyles();
+		}
+
+		async function updateTranslations() {
+			aqiTitle = await tr("AQI");
+			eaqiTitle = await tr("EAQI");
+			updatedText = await tr("Updated");
+			goodText = await tr("Good");
+			moderateText = await tr("Moderate");
+			unhealthySGText = await tr("Unhealthy (SG)");
+			unhealthyText = await tr("Unhealthy");
+			veryUnhealthyText = await tr("Very Unhealthy");
+			hazardousText = await tr("Hazardous");
+			fairText = await tr("Fair");
+			poorText = await tr("Poor");
+			veryPoorText = await tr("Very Poor");
+			extremelyPoorText = await tr("Extremely Poor");
+			ppbText = await tr("ppb");
+			ppmText = await tr("ppm");
+			ugm3Text = await tr("µg/m³");
+		}
+
+		function updateLocationData(locationId) {
+			if (locationAbort) {
+				locationAbort.abort();
+				locationAbort = null;
+			}
+			locationData = null;
+			if (!String(locationId || "").trim()) return;
+
+			locationAbort = new AbortController();
+			const { signal } = locationAbort;
+			fetch(`https://geocoding-api.open-meteo.com/v1/get?id=${locationId}&language=${languageCode}`, { signal })
+				.then((r) => r.json())
+				.then((d) => {
+					locationData = {
+						name: d.name,
+						latitude: d.latitude,
+						longitude: d.longitude,
+						country_code: d.country_code
+					};
+					document.getElementById("city-name").textContent = d.name || "";
+					updateAirQuality();
+				})
+				.catch((err) => {
+					if (err && err.name === "AbortError") return;
+					tr("No Internet Connection").then(setError);
+				})
+				.finally(() => {
+					locationAbort = null;
+				});
+		}
+
+		function getOpenMeteoKeyParam() {
+			try {
+				const k = (window.openMeteoApiKey || "").trim();
+				return k ? "&apikey=" + encodeURIComponent(k) : "";
+			} catch (e) {
+				return "";
+			}
+		}
+
+		function findCurrentHourIndex(srcData, times, offsetMs) {
+			// pick the last index whose time <= now
+			if (!Array.isArray(times) || srcData == undefined) return -1;
+
+			for (let i = times.length - 1; i >= 0; i--) {
+				const t = Date.parse(times[i]) - offsetMs;
+				if (Number.isFinite(t) && t <= srcData) return i;
+			}
+			return times.length - 1; // fallback
+		}
+
+		function valueAtOrEarlier(arr, i) {
+			if (!Array.isArray(arr)) return null;
+			for (let j = i; j >= 0; j--) {
+				const v = Number(arr[j]);
+				if (Number.isFinite(v)) return v;
+			}
+			return null;
+		}
+
+		function formatTime(dateTimeStr) {
+			const date = new Date(dateTimeStr);
+
+			let hours = date.getHours();
+			const minutes = date.getMinutes();
+
+			const ampm = hours >= 12 ? "PM" : "AM";
+
+			hours = hours % 12;
+			hours = hours ? hours : 12;
+
+			const minutesStr = minutes < 10 ? "0" + minutes : minutes;
+			return `${hours}:${minutesStr} ${ampm}`;
+		}
+
+		function ugPerM3ToPpb(ugPerM3, molarMassGPerMol) {
+			return (ugPerM3 * volumeLPerMol) / molarMassGPerMol;
+		}
+
+		function ugPerM3ToPpm(ugPerM3, molarMassGPerMol) {
+			return ugPerM3ToPpb(ugPerM3, molarMassGPerMol) * 1000;
+		}
+
+		function updateValue(progressPercent) {
+			const rotationAngle = progressPercent * 270;
+
+			if (rotationAngle <= 270) {
+				pointer.style.transform = `rotate(${rotationAngle - 45}deg)`;
+
+				circle.style.strokeDashoffset = `${942 - 754 * progressPercent}`;
+			}
+		}
+
+		function isEuropeTimezone(locationData) {
+			return !locationData.country_code || locationData.country_code !== "US";
+		}
+
+		function updateAirQuality() {
+			if (!locationData) return;
+			if (aqAbort) {
+				aqAbort.abort();
+				aqAbort = null;
+			}
+
+			aqAbort = new AbortController();
+			const { signal } = aqAbort;
+
+			const isUSFormat = !isEuropeTimezone(locationData);
+			const aqiType = isUSFormat ? "us_aqi" : "european_aqi";
+
+			const hourly = [
+				"pm10",
+				"pm2_5",
+				"carbon_monoxide",
+				"nitrogen_dioxide",
+				"sulphur_dioxide",
+				"ozone",
+				aqiType
+			].join(",");
+
+			const url =
+				"https://air-quality-api.open-meteo.com/v1/air-quality" +
+				`?latitude=${encodeURIComponent(locationData.latitude)}` +
+				`&longitude=${encodeURIComponent(locationData.longitude)}` +
+				`&hourly=${encodeURIComponent(hourly)}` +
+				`&timezone=auto` +
+				getOpenMeteoKeyParam();
+
+			fetch(url, { signal })
+				.then((r) => r.json())
+				.then((d) => {
+					const H = d && d.hourly;
+					if (!H || !Array.isArray(H.time) || H.time.length === 0) throw new Error("No data");
+
+					// adopt units from API if provided
+					const U = d && d.hourly_units ? d.hourly_units : {};
+
+					// choose most recent non-future hour
+					const dstOffsetMs = d.utc_offset_seconds * 1000;
+					const localOffsetMs = new Date().getTimezoneOffset() * 60 * 1000;
+					const idx = findCurrentHourIndex(Date.now() + localOffsetMs, H.time, dstOffsetMs);
+
+					aqData = {
+						pm25: valueAtOrEarlier(H.pm2_5, idx),
+						pm10: valueAtOrEarlier(H.pm10, idx),
+						o3: valueAtOrEarlier(H.ozone, idx),
+						no2: valueAtOrEarlier(H.nitrogen_dioxide, idx),
+						so2: valueAtOrEarlier(H.sulphur_dioxide, idx),
+						co: valueAtOrEarlier(H.carbon_monoxide, idx),
+						euAqi: valueAtOrEarlier(H.european_aqi, idx),
+						usAqi: valueAtOrEarlier(H.us_aqi, idx),
+						lastUpdated: formatTime(Date.now()),
+						isUSFormat: isUSFormat
+					};
+					metricsRendered = false;
+					render();
+					clearError();
+				})
+				.catch((err) => {
+					if (err && err.name === "AbortError") return;
+
+					if (navigator.onLine) {
+						tr("Failed to load air quality").then(setError);
+					} else {
+						tr("No Internet Connection").then(setError);
+					}
+				})
+				.finally(() => {
+					aqAbort = null;
+				});
+		}
+
+		function aqiNumber() {
+			if (Number.isFinite(aqData?.euAqi)) return aqData.euAqi;
+			if (Number.isFinite(aqData?.usAqi)) return aqData.usAqi;
+			return null;
+		}
+
+		function aqiLabel(val, isUSFormat) {
+			const v = Number(val);
+			if (!Number.isFinite(v)) return "";
+			if (isUSFormat) {
+				if (v <= 50) return goodText;
+				if (v <= 100) return moderateText;
+				if (v <= 150) return unhealthySGText;
+				if (v <= 200) return unhealthyText;
+				if (v <= 300) return veryUnhealthyText;
+				return hazardousText;
+			} else {
+				if (v <= 20) return goodText;
+				if (v <= 40) return fairText;
+				if (v <= 60) return moderateText;
+				if (v <= 80) return poorText;
+				if (v <= 100) return veryPoorText;
+				return extremelyPoorText;
+			}
+		}
+
+		function setVal(id, value, units) {
+			let el;
+			if (id != null) {
+				el = document.getElementById(id);
+			}
+
+			if (!el) return;
+			const n = Number(value);
+			if (Number.isFinite(n)) {
+				const unit = units || "";
+				el.textContent = `${Math.round(n)} ${unit}`.trim();
+			} else {
+				el.textContent = "—";
+			}
+		}
+
+		function getProgressValue(value, isUSFormat) {
+			const val = isUSFormat ? (value / 500) * 100 : value;
+			return val > 100 ? 100 : val;
+		}
+
+		function updateColorScheme(isUSFormat) {
+			const valueCircle = document.getElementById("value-circle");
+			const aqiCategory = document.getElementById("aqi-category");
+			const aqiTip = document.getElementById("aqi-tip");
+
+			if (isUSFormat) {
+				valueCircle.style.stroke = "url(#gradient-usa)";
+				aqiCategory.style.backgroundImage = usaColorsGradient;
+				aqiTip.style.backgroundImage = usaColorsGradient;
+			} else {
+				valueCircle.style.stroke = "url(#gradient-eu)";
+				aqiCategory.style.backgroundImage = euColorsGradient;
+				aqiTip.style.backgroundImage = euColorsGradient;
+			}
+		}
+
+		function renderMetrics(aqData) {
+			if (!aqData) {
+				return;
+			}
+
+			const compact = document.querySelector(".compact-metrics");
+			const detailed = document.querySelector(".detailed-metrics");
+			const isUS = aqData.isUSFormat;
+
+			let v = compact && getComputedStyle(compact).display !== "none";
+			let visibilityChanged = false;
+			if (compactVisible != v) {
+				compactVisible = v;
+				visibilityChanged = true;
+			}
+
+			v = detailed && getComputedStyle(detailed).display !== "none";
+			if (detailedVisible != v) {
+				detailedVisible = v;
+				visibilityChanged = true;
+			}
+
+			if (compactVisible && (visibilityChanged || !metricsRendered)) {
+				setVal("c-pm25", aqData.pm25, ugm3Text);
+				setVal("c-pm10", aqData.pm10, ugm3Text);
+				if (isUS) {
+					setVal("c-o3", ugPerM3ToPpb(aqData.o3, pollutantWeights.o3), ppbText);
+				} else {
+					setVal("c-o3", aqData.o3, ugm3Text);
+				}
+			}
+
+			if (detailedVisible && (visibilityChanged || !metricsRendered)) {
+				setVal("pm25", aqData.pm25, ugm3Text);
+				setVal("pm10", aqData.pm10, ugm3Text);
+				if (isUS) {
+					setVal("o3", ugPerM3ToPpb(aqData.o3, pollutantWeights.o3), ppbText);
+					setVal("no2", ugPerM3ToPpb(aqData.no2, pollutantWeights.no2), ppbText);
+					setVal("so2", ugPerM3ToPpb(aqData.so2, pollutantWeights.so2), ppbText);
+					setVal("co", ugPerM3ToPpm(aqData.co, pollutantWeights.co), ppmText);
+				} else {
+					setVal("o3", aqData.o3, ugm3Text);
+					setVal("no2", aqData.no2, ugm3Text);
+					setVal("so2", aqData.so2, ugm3Text);
+					setVal("co", aqData.co, ugm3Text);
+				}
+			}
+
+			metricsRendered = true;
+		}
+
+		function render() {
+			const aqi = aqiNumber();
+			const isUS = aqData.isUSFormat;
+			document.getElementById("aqi-value").textContent = Number.isFinite(aqi) ? String(Math.round(aqi)) : "—";
+			document.getElementById("aqi-category").textContent = aqiLabel(aqi, isUS);
+			document.getElementById("aqi-updated").textContent = `${updatedText} ${aqData.lastUpdated}`;
+			document.getElementById("aqi-title").textContent = isUS ? aqiTitle : eaqiTitle;
+			if (Number.isFinite(aqi)) {
+				root.style.setProperty("--progress-percent", getProgressValue(aqi, isUS));
+			}
+
+			updateColorScheme(isUS);
+			renderMetrics(aqData);
+		}
+
+		function updateStyles() {
+			const t = Number(transparency);
+			const opacity = Number.isFinite(t) ? t / 100 : 1;
+			root.style.setProperty("--bg-color", backgroundColor || "#000");
+			root.style.setProperty("--text-color", textColor || "#ffffff");
+			root.style.setProperty("--accent-color", accentColor || "#ffffff");
+			root.style.setProperty("--widget-opacity", opacity);
+		}
+		</script>
+	</body>
+</html>

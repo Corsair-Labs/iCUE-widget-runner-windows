@@ -1,0 +1,30 @@
+{
+  "name": "icue_widget_runner_engine",
+  "version": "1.0.0",
+  "description": "Windows runner for developing and previewing Corsair iCUE widgets.",
+  "main": "main.js",
+  "scripts": {
+    "start": "node scripts/start-electron.js",
+    "web": "node web-server.js",
+    "package:runner": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-runner.ps1",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jlcorsair/iCue_Widget_Runner_Engine.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jlcorsair/iCue_Widget_Runner_Engine/issues"
+  },
+  "homepage": "https://github.com/jlcorsair/iCue_Widget_Runner_Engine#readme",
+  "devDependencies": {
+    "electron": "^41.5.0"
+  },
+  "dependencies": {
+    "fft.js": "^4.0.4"
+  }
+}
