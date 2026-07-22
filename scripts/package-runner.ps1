@@ -7,7 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
-$packageName = "iCue_Widget_Runner_Engine"
+$packageName = "icue_widget_runner_engine_windows"
 $stageRoot = Join-Path ([IO.Path]::GetTempPath()) ("icue-runner-package-" + [guid]::NewGuid().ToString("N"))
 $packageRoot = Join-Path $stageRoot $packageName
 $resolvedOutputDir = (Resolve-Path $OutputDir).Path

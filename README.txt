@@ -1,4 +1,4 @@
-iCUE Widget Runner v7
+icue_widget_runner_engine_windows
 
 Use
 ---
@@ -72,7 +72,7 @@ Required installs:
    download. Run npm install once from the repo root; npm reads package.json and
    package-lock.json, then installs Electron under node_modules\.
 
-     cd D:\PROJECTS\ICUE_WIDGETS\Windows_iCue_Widget_Runner_Engine
+     cd icue_widget_runner_engine_windows
      npm install
 
    After this finishes, this file should exist:
@@ -122,7 +122,7 @@ From the repo root, create a fresh-Windows zip package with:
 
 This creates:
 
-  iCue_Widget_Runner_Engine.zip
+  icue_widget_runner_engine_windows.zip
 
 To create a .7z archive instead, run the script directly with -Format 7z:
 

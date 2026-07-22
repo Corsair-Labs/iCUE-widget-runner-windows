@@ -2,8 +2,8 @@
 node_modules/
 
 # Packaged output
-iCue_Widget_Runner_Engine.zip
-iCue_Widget_Runner_Engine.7z
+icue_widget_runner_engine_windows.zip
+icue_widget_runner_engine_windows.7z
 dist/
 out/
 

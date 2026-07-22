@@ -1,5 +1,5 @@
 {
-  "name": "icue_widget_runner_engine",
+  "name": "icue_widget_runner_engine_windows",
   "version": "1.0.0",
   "description": "Windows runner for developing and previewing Corsair iCUE widgets.",
   "main": "main.js",
@@ -11,16 +11,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jlcorsair/iCue_Widget_Runner_Engine.git"
+    "url": "git+https://github.com/jlcorsair/icue_widget_runner_engine_windows.git"
   },
   "keywords": [],
   "author": "",
   "license": "MIT",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/jlcorsair/iCue_Widget_Runner_Engine/issues"
+    "url": "https://github.com/jlcorsair/icue_widget_runner_engine_windows/issues"
   },
-  "homepage": "https://github.com/jlcorsair/iCue_Widget_Runner_Engine#readme",
+  "homepage": "https://github.com/jlcorsair/icue_widget_runner_engine_windows#readme",
   "devDependencies": {
     "electron": "^41.5.0"
   },
