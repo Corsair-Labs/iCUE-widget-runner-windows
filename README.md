@@ -1,4 +1,4 @@
-# icue_widget_runner_engine_windows
+# iCUE Widget Runner Engine for Windows
 
 Windows runner for browser-style CORSAIR iCUE widgets. The app discovers
 widgets in the local `widgets\` folder, injects a small iCUE compatibility
